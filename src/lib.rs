@@ -1,10 +1,9 @@
-use std::{
-    collections::HashMap,
-    ops::{Add, Neg},
-    str::FromStr,
-    string::ParseError,
-};
+use std::{collections::HashMap, ops::Add, str::FromStr, string::ParseError};
 
+pub use atom::*;
+pub mod atom;
+
+use atom::Atom;
 use nalgebra as na;
 
 // TODO expand beyond cartesian axes. an alternative formulation of this is to
@@ -23,49 +22,6 @@ pub enum Axis {
 // plane is described by (a, b, c) in the equation ax + by + cz = 0
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Plane(Axis, Axis);
-
-#[derive(Debug, Clone, Copy)]
-pub struct Atom {
-    pub atomic_number: usize,
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-}
-
-impl PartialEq for Atom {
-    fn eq(&self, other: &Self) -> bool {
-        let eps = 1e-8;
-        let close = |a: f64, b: f64| (a - b).abs() < eps;
-        self.atomic_number == other.atomic_number
-            && close(self.x, other.x)
-            && close(self.y, other.y)
-            && close(self.z, other.z)
-    }
-}
-
-impl Neg for Atom {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self {
-            atomic_number: self.atomic_number,
-            x: -self.x,
-            y: -self.y,
-            z: -self.z,
-        }
-    }
-}
-
-impl Atom {
-    pub fn new(atomic_number: usize, x: f64, y: f64, z: f64) -> Self {
-        Self {
-            atomic_number,
-            x,
-            y,
-            z,
-        }
-    }
-}
 
 #[derive(Debug, PartialEq)]
 pub enum PointGroup {
@@ -162,10 +118,7 @@ impl FromStr for Molecule {
                 let sym = if let Some(&s) = atomic_symbols.get(fields[0]) {
                     s
                 } else {
-                    panic!(
-                        "atomic symbol '{}' not found, tell Brent!",
-                        fields[0]
-                    );
+                    panic!("atomic symbol '{}' not found, tell Brent!", fields[0]);
                 };
                 ret.atoms.push(Atom::new(
                     sym,
@@ -185,11 +138,7 @@ impl Add<Vec<f64>> for Molecule {
     /// panics if the size of `rhs` doesn't align with the size of `self.atoms`
     fn add(self, rhs: Vec<f64>) -> Self::Output {
         if 3 * self.atoms.len() != rhs.len() {
-            panic!(
-                "{} atoms but {} displacements",
-                self.atoms.len(),
-                rhs.len()
-            );
+            panic!("{} atoms but {} displacements", self.atoms.len(), rhs.len());
         }
         let mut ret = self.clone();
         // panic above ensures rhs is exactly divisble by 3
@@ -251,12 +200,8 @@ impl Molecule {
         let mut ret = Self::default();
         for (i, atom) in self.to_vecs().iter().enumerate() {
             let v = mat * atom;
-            ret.atoms.push(Atom::new(
-                self.atoms[i].atomic_number,
-                v[0],
-                v[1],
-                v[2],
-            ));
+            ret.atoms
+                .push(Atom::new(self.atoms[i].atomic_number, v[0], v[1], v[2]));
         }
         ret
     }
@@ -584,29 +529,29 @@ mod tests {
         let tests = vec![
             (
                 vec![
-                    0.00, 0.03, 0.00, 0.22, -0.11, 0.00, -0.22, -0.11, 0.00,
-                    -0.57, 0.33, 0.00, 0.57, 0.33, 0.00,
+                    0.00, 0.03, 0.00, 0.22, -0.11, 0.00, -0.22, -0.11, 0.00, -0.57, 0.33, 0.00,
+                    0.57, 0.33, 0.00,
                 ],
                 A1,
             ),
             (
                 vec![
-                    -0.01, 0.00, 0.00, 0.17, -0.10, 0.00, 0.17, 0.10, 0.00,
-                    -0.59, 0.34, 0.00, -0.59, -0.34, 0.00,
+                    -0.01, 0.00, 0.00, 0.17, -0.10, 0.00, 0.17, 0.10, 0.00, -0.59, 0.34, 0.00,
+                    -0.59, -0.34, 0.00,
                 ],
                 B1,
             ),
             (
                 vec![
-                    0.00, 0.00, 0.00, 0.00, 0.00, 0.40, 0.00, 0.00, -0.40,
-                    0.00, 0.00, -0.58, 0.00, 0.00, 0.58,
+                    0.00, 0.00, 0.00, 0.00, 0.00, 0.40, 0.00, 0.00, -0.40, 0.00, 0.00, -0.58, 0.00,
+                    0.00, 0.58,
                 ],
                 A2,
             ),
             (
                 vec![
-                    0.00, 0.00, 0.16, 0.00, 0.00, -0.27, 0.00, 0.00, -0.27,
-                    0.00, 0.00, 0.64, 0.00, 0.00, 0.64,
+                    0.00, 0.00, 0.16, 0.00, 0.00, -0.27, 0.00, 0.00, -0.27, 0.00, 0.00, 0.64, 0.00,
+                    0.00, 0.64,
                 ],
                 B2,
             ),
