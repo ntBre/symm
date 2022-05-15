@@ -1,4 +1,7 @@
-use std::ops::Neg;
+use std::{
+    io::{self, ErrorKind},
+    ops::Neg, str::FromStr,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Atom {
@@ -32,6 +35,53 @@ impl Neg for Atom {
     }
 }
 
+impl ToString for Atom {
+    fn to_string(&self) -> String {
+        format!(
+            "{:2} {:15.10} {:15.10} {:15.10}",
+            self.label(),
+            self.x,
+            self.y,
+            self.z
+        )
+    }
+}
+
+impl FromStr for Atom {
+    type Err = io::Error;
+
+    /// parse an Atom from a line like
+    ///  C 1.0 1.0 1.0
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let fields: Vec<_> = s.split_whitespace().collect();
+        if fields.len() != 4 {
+            return Err(io::Error::new(
+                ErrorKind::Other,
+                "wrong number of fields in Atom",
+            ));
+        }
+        let coord = fields[1..].iter().map(|s| s.parse());
+        if coord.clone().any(|s| s.is_err()) {
+            return Err(io::Error::new(
+                ErrorKind::Other,
+                "failed to parse coordinate field as f64",
+            ));
+        }
+        let coord: Vec<_> = coord.flatten().collect();
+        Ok(Self::new_from_label(
+            fields[0], coord[0], coord[1], coord[2],
+        ))
+    }
+}
+
+pub const NUMBER_TO_SYMBOL: [&str; 55] = [
+    "", "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al",
+    "Si", "P", "S", "Cl", "Ar", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe",
+    "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr",
+    "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn",
+    "Sb", "Te", "I", "Xe",
+];
+
 impl Atom {
     pub fn new(atomic_number: usize, x: f64, y: f64, z: f64) -> Self {
         Self {
@@ -40,5 +90,22 @@ impl Atom {
             y,
             z,
         }
+    }
+
+    pub fn new_from_label(atomic_symbol: &str, x: f64, y: f64, z: f64) -> Self {
+        Self::new(
+            NUMBER_TO_SYMBOL
+                .iter()
+                .position(|&x| x == atomic_symbol)
+                .unwrap(),
+            x,
+            y,
+            z,
+        )
+    }
+
+    pub fn label(&self) -> &str {
+        assert!(self.atomic_number != 0 && self.atomic_number < 55);
+        NUMBER_TO_SYMBOL[self.atomic_number]
     }
 }

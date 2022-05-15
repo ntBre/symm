@@ -3,7 +3,6 @@ use std::{collections::HashMap, ops::Add, str::FromStr, string::ParseError};
 pub use atom::*;
 pub mod atom;
 
-use atom::Atom;
 use nalgebra as na;
 
 // TODO expand beyond cartesian axes. an alternative formulation of this is to
