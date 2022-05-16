@@ -1,7 +1,10 @@
 use std::{
     io::{self, ErrorKind},
-    ops::Neg, str::FromStr,
+    ops::{Add, AddAssign, Neg},
+    str::FromStr,
 };
+
+use crate::Vec3;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Atom {
@@ -32,6 +35,25 @@ impl Neg for Atom {
             y: -self.y,
             z: -self.z,
         }
+    }
+}
+
+impl Add<Vec3> for Atom {
+    type Output = Atom;
+
+    fn add(self, rhs: Vec3) -> Self::Output {
+        Atom {
+            x: self.x + rhs[0],
+            y: self.y + rhs[1],
+            z: self.z + rhs[2],
+            ..self
+        }
+    }
+}
+
+impl AddAssign<Vec3> for Atom {
+    fn add_assign(&mut self, rhs: Vec3) {
+        *self = *self + rhs
     }
 }
 
@@ -107,5 +129,9 @@ impl Atom {
     pub fn label(&self) -> &str {
         assert!(self.atomic_number != 0 && self.atomic_number < 55);
         NUMBER_TO_SYMBOL[self.atomic_number]
+    }
+
+    pub fn coord(&self) -> Vec<f64> {
+        vec![self.x, self.y, self.z]
     }
 }

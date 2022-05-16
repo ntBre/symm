@@ -1,9 +1,32 @@
-use std::{collections::HashMap, ops::Add, str::FromStr, string::ParseError};
+use std::{
+    collections::HashMap, fmt::Display, ops::Add, str::FromStr,
+    string::ParseError,
+};
+
+#[cfg(test)]
+mod tests;
 
 pub use atom::*;
 pub mod atom;
 
 use nalgebra as na;
+
+type Vec3 = na::Vector3<f64>;
+type Mat3 = na::Matrix3<f64>;
+
+// atomic weights from https://physics.nist.gov
+const WEIGHTS: [f64; 10] = [
+    0.0,
+    1.007_825_032,
+    3.016_029_320,
+    7.016_003_43,
+    9.012_183_065,
+    11.009_305_36,
+    12.0000000,
+    14.003_074_004_43,
+    15.994_914_619_57,
+    18.998_403_162_73,
+];
 
 // TODO expand beyond cartesian axes. an alternative formulation of this is to
 // align the geometry to a cartesian axis if it doesn't start like that. I think
@@ -117,7 +140,10 @@ impl FromStr for Molecule {
                 let sym = if let Some(&s) = atomic_symbols.get(fields[0]) {
                     s
                 } else {
-                    panic!("atomic symbol '{}' not found, tell Brent!", fields[0]);
+                    panic!(
+                        "atomic symbol '{}' not found, tell Brent!",
+                        fields[0]
+                    );
                 };
                 ret.atoms.push(Atom::new(
                     sym,
@@ -137,7 +163,11 @@ impl Add<Vec<f64>> for Molecule {
     /// panics if the size of `rhs` doesn't align with the size of `self.atoms`
     fn add(self, rhs: Vec<f64>) -> Self::Output {
         if 3 * self.atoms.len() != rhs.len() {
-            panic!("{} atoms but {} displacements", self.atoms.len(), rhs.len());
+            panic!(
+                "{} atoms but {} displacements",
+                self.atoms.len(),
+                rhs.len()
+            );
         }
         let mut ret = self.clone();
         // panic above ensures rhs is exactly divisble by 3
@@ -150,6 +180,19 @@ impl Add<Vec<f64>> for Molecule {
     }
 }
 
+impl Display for Molecule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for atom in &self.atoms {
+            writeln!(
+                f,
+                "{:5}{:12.8}{:12.8}{:12.8}",
+                NUMBER_TO_SYMBOL[atom.atomic_number], atom.x, atom.y, atom.z
+            )?;
+        }
+        Ok(())
+    }
+}
+
 impl Molecule {
     pub fn new(atoms: Vec<Atom>) -> Self {
         Self { atoms }
@@ -159,17 +202,75 @@ impl Molecule {
         Self { atoms: Vec::new() }
     }
 
-    fn to_vecs(&self) -> Vec<na::Vector3<f64>> {
+    fn to_vecs(&self) -> Vec<Vec3> {
         let mut ret = Vec::with_capacity(self.atoms.len());
         for atom in &self.atoms {
-            ret.push(na::Vector3::new(atom.x, atom.y, atom.z));
+            ret.push(Vec3::new(atom.x, atom.y, atom.z));
         }
         ret
     }
 
-    pub fn point_group(&self) -> PointGroup {
+    /// compute the center of mass of `self`, assuming the most abundant isotope
+    /// masses
+    fn com(&self) -> Vec3 {
+        let mut sum = 0.0;
+        let mut com = Vec3::zeros();
+        for atom in &self.atoms {
+            let w = WEIGHTS[atom.atomic_number];
+            sum += w;
+            com += w * Vec3::from_row_slice(&atom.coord());
+        }
+        com / sum
+    }
+
+    /// compute the moment of inertia tensor
+    fn inertia_tensor(&self) -> Mat3 {
+        let mut ret = Mat3::zeros();
+        for atom in &self.atoms {
+            let Atom {
+                x,
+                y,
+                z,
+                atomic_number: i,
+            } = atom;
+            // diagonal
+            ret[(0, 0)] += WEIGHTS[*i] * (y * y + z * z);
+            ret[(1, 1)] += WEIGHTS[*i] * (x * x + z * z);
+            ret[(2, 2)] += WEIGHTS[*i] * (x * x + y * y);
+            // off-diagonal
+            ret[(1, 0)] += WEIGHTS[*i] * x * y;
+            ret[(2, 0)] += WEIGHTS[*i] * x * z;
+            ret[(2, 1)] += WEIGHTS[*i] * y * z;
+        }
+        ret
+    }
+
+    /// eigenfactorize the moment of inertia tensor and return the principal
+    /// axes as a 3x3 matrix
+    fn moi(&self) -> Mat3 {
+        let it = self.inertia_tensor();
+        let sym = na::SymmetricEigen::new(it);
+        sym.eigenvectors
+    }
+
+    /// normalize `self` by translating to the center of mass and orienting the
+    /// molecule such that the rotational axes are aligned with the Cartesian
+    /// axes. adapted from SPECTRO
+    pub fn normalize(&mut self) {
+        let com = self.com();
+        // translate to the center of mass
+        for atom in self.atoms.iter_mut() {
+            *atom += com;
+        }
+        let moi = self.moi();
+        *self = self.transform(moi);
+    }
+
+    /// takes `self` by mut reference because it calls `normalize` first
+    pub fn point_group(&mut self) -> PointGroup {
         use Axis::*;
         use PointGroup::*;
+        self.normalize();
         let mut axes = Vec::new();
         let mut planes = Vec::new();
         for ax in vec![X, Y, Z] {
@@ -199,8 +300,12 @@ impl Molecule {
         let mut ret = Self::default();
         for (i, atom) in self.to_vecs().iter().enumerate() {
             let v = mat * atom;
-            ret.atoms
-                .push(Atom::new(self.atoms[i].atomic_number, v[0], v[1], v[2]));
+            ret.atoms.push(Atom::new(
+                self.atoms[i].atomic_number,
+                v[0],
+                v[1],
+                v[2],
+            ));
         }
         ret
     }
@@ -335,229 +440,6 @@ impl Molecule {
                     _ => panic!("unmatched C2v Irrep with chars = {:?}", chars),
                 }
             }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use Axis::*;
-
-    #[test]
-    fn test_rotate() {
-        let tests = vec![
-            // X around all axes
-            (
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                180.0,
-                X,
-            ),
-            (
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                vec![Atom::new(1, -1.0, 0.0, 0.0)],
-                180.0,
-                Y,
-            ),
-            (
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                vec![Atom::new(1, -1.0, 0.0, 0.0)],
-                180.0,
-                Z,
-            ),
-            // Y around all axes
-            (
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                vec![Atom::new(1, 0.0, -1.0, 0.0)],
-                180.0,
-                X,
-            ),
-            (
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                180.0,
-                Y,
-            ),
-            (
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                vec![Atom::new(1, 0.0, -1.0, 0.0)],
-                180.0,
-                Z,
-            ),
-            // Z around all axes
-            (
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                vec![Atom::new(1, 0.0, 0.0, -1.0)],
-                180.0,
-                X,
-            ),
-            (
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                vec![Atom::new(1, 0.0, 0.0, -1.0)],
-                180.0,
-                Y,
-            ),
-            (
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                180.0,
-                Z,
-            ),
-        ];
-        for test in tests {
-            let h = Molecule { atoms: test.0 };
-            let want = Molecule { atoms: test.1 };
-            let got = h.rotate(test.2, &test.3);
-            assert_eq!(got, want);
-        }
-    }
-
-    #[test]
-    fn test_reflect() {
-        let tests = vec![
-            // X through all the planes
-            (
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                vec![Atom::new(1, -1.0, 0.0, 0.0)],
-                Plane(Y, Z),
-            ),
-            (
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                Plane(X, Z),
-            ),
-            (
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                vec![Atom::new(1, 1.0, 0.0, 0.0)],
-                Plane(X, Y),
-            ),
-            // Y through all the planes
-            (
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                Plane(Y, Z),
-            ),
-            (
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                vec![Atom::new(1, 0.0, -1.0, 0.0)],
-                Plane(X, Z),
-            ),
-            (
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                vec![Atom::new(1, 0.0, 1.0, 0.0)],
-                Plane(X, Y),
-            ),
-            // Z through all the planes
-            (
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                Plane(Y, Z),
-            ),
-            (
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                Plane(X, Z),
-            ),
-            (
-                vec![Atom::new(1, 0.0, 0.0, 1.0)],
-                vec![Atom::new(1, 0.0, 0.0, -1.0)],
-                Plane(X, Y),
-            ),
-        ];
-        for test in tests {
-            let h = Molecule { atoms: test.0 };
-            let want = Molecule { atoms: test.1 };
-            let got = h.reflect(&test.2);
-            assert_eq!(got, want);
-        }
-    }
-
-    #[test]
-    fn test_point_group() {
-        use PointGroup::*;
-        let mol = Molecule::from_str(
-            "
-  O           0.000000000    0.000000000   -0.124238453
-  H           0.000000000    1.431390207    0.986041184
-  H           0.000000000   -1.431390207    0.986041184
-",
-        )
-        .unwrap();
-        assert_eq!(
-            mol.point_group(),
-            C2v {
-                axis: Z,
-                planes: vec![Plane(X, Z), Plane(Y, Z)]
-            }
-        );
-
-        let mol = Molecule::from_str(
-            "
-    C        0.000000   -0.888844    0.000000
-    C       -0.662697    0.368254    0.000000
-    C        0.662697    0.368254    0.000000
-    H       -1.595193    0.906925    0.000000
-    H        1.595193    0.906925    0.000000
-",
-        )
-        .unwrap();
-        assert_eq!(
-            mol.point_group(),
-            C2v {
-                axis: Y,
-                planes: vec![Plane(X, Y), Plane(Y, Z)]
-            }
-        );
-    }
-
-    #[test]
-    fn test_irrep() {
-        use Irrep::*;
-        let mol_orig = Molecule::from_str(
-            "
-    C        0.000000   -0.888844    0.000000
-    C       -0.662697    0.368254    0.000000
-    C        0.662697    0.368254    0.000000
-    H       -1.595193    0.906925    0.000000
-    H        1.595193    0.906925    0.000000
-",
-        )
-        .unwrap();
-        let pg = mol_orig.point_group();
-        let tests = vec![
-            (
-                vec![
-                    0.00, 0.03, 0.00, 0.22, -0.11, 0.00, -0.22, -0.11, 0.00, -0.57, 0.33, 0.00,
-                    0.57, 0.33, 0.00,
-                ],
-                A1,
-            ),
-            (
-                vec![
-                    -0.01, 0.00, 0.00, 0.17, -0.10, 0.00, 0.17, 0.10, 0.00, -0.59, 0.34, 0.00,
-                    -0.59, -0.34, 0.00,
-                ],
-                B1,
-            ),
-            (
-                vec![
-                    0.00, 0.00, 0.00, 0.00, 0.00, 0.40, 0.00, 0.00, -0.40, 0.00, 0.00, -0.58, 0.00,
-                    0.00, 0.58,
-                ],
-                A2,
-            ),
-            (
-                vec![
-                    0.00, 0.00, 0.16, 0.00, 0.00, -0.27, 0.00, 0.00, -0.27, 0.00, 0.00, 0.64, 0.00,
-                    0.00, 0.64,
-                ],
-                B2,
-            ),
-        ];
-        for test in tests {
-            let mol = mol_orig.clone() + test.0;
-            assert_eq!(mol.irrep(&pg), test.1);
         }
     }
 }
