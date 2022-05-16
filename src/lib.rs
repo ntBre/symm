@@ -53,7 +53,7 @@ pub enum PointGroup {
     C2v { axis: Axis, planes: Vec<Plane> },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum Irrep {
     // C1
     A,
