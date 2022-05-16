@@ -212,6 +212,22 @@ impl Molecule {
         ret
     }
 
+    /// build a `Molecule` from a slice of coordinates and a slice of
+    /// atomic_numbers
+    pub fn from_slices(atomic_numbers: Vec<usize>, coords: &[f64]) -> Self {
+        assert_eq!(3 * atomic_numbers.len(), coords.len());
+        let mut atoms = Vec::new();
+        for (i, atom) in coords.chunks(3).enumerate() {
+            atoms.push(Atom::new(atomic_numbers[i], atom[0], atom[1], atom[2]));
+        }
+        Self { atoms }
+    }
+
+    /// return the atomic numbers of each atoms as a vector
+    pub fn atomic_numbers(&self) -> Vec<usize> {
+        self.atoms.iter().map(|a| a.atomic_number).collect()
+    }
+
     /// compute the center of mass of `self`, assuming the most abundant isotope
     /// masses
     fn com(&self) -> Vec3 {
