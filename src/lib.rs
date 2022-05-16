@@ -195,7 +195,9 @@ impl Display for Molecule {
 
 impl Molecule {
     pub fn new(atoms: Vec<Atom>) -> Self {
-        Self { atoms }
+        let mut ret = Self { atoms };
+        ret.normalize();
+        ret
     }
 
     pub fn default() -> Self {
@@ -267,10 +269,9 @@ impl Molecule {
     }
 
     /// takes `self` by mut reference because it calls `normalize` first
-    pub fn point_group(&mut self) -> PointGroup {
+    pub fn point_group(&self) -> PointGroup {
         use Axis::*;
         use PointGroup::*;
-        self.normalize();
         let mut axes = Vec::new();
         let mut planes = Vec::new();
         for ax in vec![X, Y, Z] {

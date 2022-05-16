@@ -181,6 +181,7 @@ fn test_point_group() {
     ];
     for test in tests {
         let mut mol = Molecule::from_str(test.mol).unwrap();
+        mol.normalize();
         assert_eq!(mol.point_group(), test.pg,);
     }
 }
@@ -188,7 +189,7 @@ fn test_point_group() {
 #[test]
 fn test_irrep() {
     use Irrep::*;
-    let mut mol_orig = Molecule::from_str(
+    let mol_orig = Molecule::from_str(
         "
     C        0.000000   -0.888844    0.000000
     C       -0.662697    0.368254    0.000000
