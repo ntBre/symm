@@ -195,9 +195,7 @@ impl Display for Molecule {
 
 impl Molecule {
     pub fn new(atoms: Vec<Atom>) -> Self {
-        let mut ret = Self { atoms };
-        ret.normalize();
-        ret
+        Self { atoms }
     }
 
     pub fn default() -> Self {
@@ -284,7 +282,6 @@ impl Molecule {
         *self = self.transform(moi);
     }
 
-    /// takes `self` by mut reference because it calls `normalize` first
     pub fn point_group(&self) -> PointGroup {
         use Axis::*;
         use PointGroup::*;
