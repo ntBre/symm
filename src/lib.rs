@@ -193,13 +193,17 @@ impl Display for Molecule {
     }
 }
 
+impl Default for Molecule {
+    fn default() -> Self {
+        Self {
+            atoms: Default::default(),
+        }
+    }
+}
+
 impl Molecule {
     pub fn new(atoms: Vec<Atom>) -> Self {
         Self { atoms }
-    }
-
-    pub fn default() -> Self {
-        Self { atoms: Vec::new() }
     }
 
     fn to_vecs(&self) -> Vec<Vec3> {
