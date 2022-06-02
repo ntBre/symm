@@ -14,7 +14,10 @@ use nalgebra as na;
 type Vec3 = na::Vector3<f64>;
 type Mat3 = na::Matrix3<f64>;
 
-// atomic weights from https://physics.nist.gov
+/// from <https://physics.nist.gov/cgi-bin/cuu/Value?bohrrada0>
+pub const ANGBOHR: f64 = 0.5291_772_109;
+
+/// atomic weights from https://physics.nist.gov
 const WEIGHTS: [f64; 10] = [
     0.0,
     1.007_825_032,
@@ -228,6 +231,15 @@ impl Molecule {
     /// return the atomic numbers of each atoms as a vector
     pub fn atomic_numbers(&self) -> Vec<usize> {
         self.atoms.iter().map(|a| a.atomic_number).collect()
+    }
+
+    /// convert the coordinates in `self` from Angstroms to Bohr
+    pub fn to_bohr(&mut self) {
+	for atom in self.atoms.iter_mut() {
+	    atom.x /= ANGBOHR;
+	    atom.y /= ANGBOHR;
+	    atom.z /= ANGBOHR;
+	}
     }
 
     /// compute the center of mass of `self`, assuming the most abundant isotope
