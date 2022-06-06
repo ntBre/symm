@@ -178,6 +178,19 @@ fn test_point_group() {
                 planes: vec![Plane(X, Y), Plane(Y, Z)],
             },
         },
+	Test {
+	    mol: "C      0.00000000 -0.00000000 -0.66360460
+H     -0.00000000  0.90205573 -1.26058509
+H     -0.00000000 -0.90205573 -1.26058509
+C     -0.00000000  0.00000000  0.66360460
+H      0.00000000  0.90205573  1.26058509
+H     -0.00000000 -0.90205573  1.26058509
+",
+	    pg: C2v {
+		axis: X,
+		planes: vec![Plane(X, Y), Plane(X, Z)],
+	    },
+	},
     ];
     for test in tests {
         let mut mol = Molecule::from_str(test.mol).unwrap();

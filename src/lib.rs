@@ -56,6 +56,21 @@ pub enum PointGroup {
     C2v { axis: Axis, planes: Vec<Plane> },
 }
 
+impl Display for PointGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PointGroup::C1 => "C1",
+                PointGroup::C2 { axis: _ } => "C2",
+                PointGroup::Cs { plane: _ } => "Cs",
+                PointGroup::C2v { axis: _, planes: _ } => "C2v",
+            }
+        )
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum Irrep {
     // C1
@@ -235,11 +250,11 @@ impl Molecule {
 
     /// convert the coordinates in `self` from Angstroms to Bohr
     pub fn to_bohr(&mut self) {
-	for atom in self.atoms.iter_mut() {
-	    atom.x /= ANGBOHR;
-	    atom.y /= ANGBOHR;
-	    atom.z /= ANGBOHR;
-	}
+        for atom in self.atoms.iter_mut() {
+            atom.x /= ANGBOHR;
+            atom.y /= ANGBOHR;
+            atom.z /= ANGBOHR;
+        }
     }
 
     /// compute the center of mass of `self`, assuming the most abundant isotope
@@ -320,6 +335,11 @@ impl Molecule {
                 planes,
                 axis: axes[0],
             },
+	    // TODO this should be D2h
+	    (3, 3) => C2v {
+		planes: planes[..2].to_vec(),
+		axis: axes[0],
+	    },
             _ => C1,
         }
     }
