@@ -43,10 +43,30 @@ pub enum Axis {
     Z,
 }
 
+impl Display for Axis {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Axis::X => "X",
+                Axis::Y => "Y",
+                Axis::Z => "Z",
+            }
+        )
+    }
+}
+
 // restrict these to combinations of cartesian axes for now. a more general
 // plane is described by (a, b, c) in the equation ax + by + cz = 0
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Plane(Axis, Axis);
+
+impl Display for Plane {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Plane({}, {})", self.0, self.1)
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum PointGroup {
@@ -335,11 +355,11 @@ impl Molecule {
                 planes,
                 axis: axes[0],
             },
-	    // TODO this should be D2h
-	    (3, 3) => C2v {
-		planes: planes[..2].to_vec(),
-		axis: axes[0],
-	    },
+            // TODO this should be D2h
+            (3, 3) => C2v {
+                planes: planes[..2].to_vec(),
+                axis: axes[0],
+            },
             _ => C1,
         }
     }
