@@ -178,19 +178,19 @@ fn test_point_group() {
                 planes: vec![Plane(X, Y), Plane(Y, Z)],
             },
         },
-	Test {
-	    mol: "C      0.00000000 -0.00000000 -0.66360460
+        Test {
+            mol: "C      0.00000000 -0.00000000 -0.66360460
 H     -0.00000000  0.90205573 -1.26058509
 H     -0.00000000 -0.90205573 -1.26058509
 C     -0.00000000  0.00000000  0.66360460
 H      0.00000000  0.90205573  1.26058509
 H     -0.00000000 -0.90205573  1.26058509
 ",
-	    pg: C2v {
-		axis: X,
-		planes: vec![Plane(X, Y), Plane(X, Z)],
-	    },
-	},
+            pg: C2v {
+                axis: Z,
+                planes: vec![Plane(X, Z), Plane(Y, Z)],
+            },
+        },
     ];
     for test in tests {
         let mut mol = Molecule::from_str(test.mol).unwrap();
@@ -247,6 +247,51 @@ fn test_irrep() {
         let mol = mol_orig.clone() + test.0;
         assert_eq!(mol.irrep(&pg), test.1);
     }
+}
+
+#[test]
+fn test_c2h4_irrep() {
+    let mol = Molecule::from_str(
+        "
+C        0.0000000000       -0.0023898386        1.2600838751
+H        0.0000000000        1.7483464088        2.3303799608
+H        0.0000000000       -1.7425505916        2.3220592143
+C        0.0000000000       -0.0014113004       -1.2600853510
+H        0.0000000000        1.7444525133       -2.3255411215
+H        0.0000000000       -1.7464471915       -2.3268965777
+",
+    )
+    .unwrap();
+    assert_eq!(
+        mol.irrep(&PointGroup::C2v {
+            axis: Z,
+            planes: vec![Plane(X, Z), Plane(Y, Z)]
+        }),
+        Irrep::B2
+    );
+}
+
+
+#[test]
+fn test_c2h4_irrep10() {
+    let mol = Molecule::from_str(
+        "
+C      0.00139327 -1.25400055 -0.00000000
+H     -0.00036672 -2.38212447  1.70464007
+H     -0.00036672 -2.38212448 -1.70464006
+C     -0.00139327  1.25400055  0.00000000
+H      0.00036672  2.38212448  1.70464006
+H      0.00036672  2.38212448 -1.70464007
+",
+    )
+    .unwrap();
+    assert_eq!(
+        mol.irrep(&PointGroup::C2v {
+            axis: Y,
+            planes: vec![Plane(X, Y), Plane(Y, Z)]
+        }),
+        Irrep::B1
+    );
 }
 
 #[test]

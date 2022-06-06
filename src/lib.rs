@@ -355,11 +355,16 @@ impl Molecule {
                 planes,
                 axis: axes[0],
             },
-            // TODO this should be D2h
-            (3, 3) => C2v {
-                planes: planes[..2].to_vec(),
-                axis: axes[0],
-            },
+            // TODO this should be D2h and I should determine the axis based on
+            // masses like in the Go version, not arbitrarily Z as I'm doing
+            // here. the planes are those containing the principal axis
+            (3, 3) => {
+                todo!();
+                // C2v {
+                //     planes: vec![Plane(X, Z), Plane(Y, Z)],
+                //     axis: Z,
+                // }
+            }
             _ => C1,
         }
     }
