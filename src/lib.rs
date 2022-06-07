@@ -6,6 +6,7 @@ use std::{
 #[cfg(test)]
 mod tests;
 
+use approx::AbsDiffEq;
 pub use atom::*;
 pub mod atom;
 
@@ -126,6 +127,44 @@ impl ToString for Irrep {
 #[derive(Debug, Clone)]
 pub struct Molecule {
     pub atoms: Vec<Atom>,
+}
+
+/// A Molecule is AbsDiffEq if each of its Atoms is
+impl AbsDiffEq for Molecule {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        1e-8
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        assert!(self.atoms.len() == other.atoms.len());
+        let mut theirs = other.atoms.clone();
+        if self.atoms.len() != theirs.len() {
+            return false;
+        }
+        for atom in &self.atoms {
+            let mut pops = Vec::new();
+            let mut found = false;
+            for (i, btom) in theirs.iter().enumerate() {
+                if atom.abs_diff_eq(btom, epsilon) {
+                    pops.push(i);
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                return false;
+            }
+            // remove high indices first
+            pops.sort();
+            pops.reverse();
+            for p in pops {
+                theirs.remove(p);
+            }
+        }
+        true
+    }
 }
 
 impl PartialEq for Molecule {
@@ -482,6 +521,82 @@ impl Molecule {
             _ => panic!("unrecognized plane {:?}", plane),
         };
         self.transform(ref_mat)
+    }
+
+    pub fn irrep_approx(&self, pg: &PointGroup, eps: f64) -> Irrep {
+        use Irrep::*;
+        use PointGroup::*;
+        match pg {
+            C1 => A,
+            C2 { axis } => {
+                let new = self.rotate(180.0, &axis);
+                if new.abs_diff_eq(self, eps) {
+                    A
+                } else if new.rotate(180.0, &axis).abs_diff_eq(self, eps) {
+                    B
+                } else {
+                    panic!("unmatched C2 Irrep");
+                }
+            }
+            Cs { plane } => {
+                let new = self.reflect(&plane);
+                if new.abs_diff_eq(self, eps) {
+                    Ap
+                } else if new.reflect(&plane).abs_diff_eq(self, eps) {
+                    App
+                } else {
+                    panic!("unmatched Cs Irrep");
+                }
+            }
+            // TODO this is where the plane order can matter - B1 vs B2. as long
+            // as you call `irrep` multiple times with the same PointGroup, you
+            // should get consistent results at least. source of the issue is in
+            // point_group - order of planes there should be based on something
+            // besides random choice of iteration order in the implementation
+            // (mass?)
+            C2v { axis, planes } => {
+                let mut chars = (0, 0, 0);
+                // TODO would be nice to abstract these into some kind of apply
+                // function
+                chars.0 = {
+                    let new = self.rotate(180.0, &axis);
+                    if new.abs_diff_eq(self, eps) {
+                        1 // the same
+                    } else if new.rotate(180.0, &axis).abs_diff_eq(self, eps) {
+                        -1 // the opposite
+                    } else {
+                        0 // something else
+                    }
+                };
+                chars.1 = {
+                    let new = self.reflect(&planes[0]);
+                    if new.abs_diff_eq(self, eps) {
+                        1
+                    } else if new.reflect(&planes[0]).abs_diff_eq(self, eps) {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                chars.2 = {
+                    let new = self.reflect(&planes[1]);
+                    if new.abs_diff_eq(self, eps) {
+                        1
+                    } else if new.reflect(&planes[1]).abs_diff_eq(self, eps) {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                match chars {
+                    (1, 1, 1) => A1,
+                    (1, -1, -1) => A2,
+                    (-1, 1, -1) => B1,
+                    (-1, -1, 1) => B2,
+                    _ => panic!("unmatched C2v Irrep with chars = {:?}", chars),
+                }
+            }
+        }
     }
 
     pub fn irrep(&self, pg: &PointGroup) -> Irrep {

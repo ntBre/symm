@@ -329,6 +329,30 @@ H     -0.00036672 -1.70464007  2.38212448
 }
 
 #[test]
+fn test_c2h4_again_again() {
+    let mol = Molecule::from_str(
+        "
+C     -0.00146023  0.00000002  1.36220367
+H      0.00039049 -1.76535618  2.54697919
+H      0.00039049  1.76535607  2.54697922
+C      0.00146023 -0.00000001 -1.36220368
+H     -0.00039049 -1.76535607 -2.54697922
+H     -0.00039049  1.76535618 -2.54697919",
+    )
+    .unwrap();
+    assert_eq!(
+        mol.irrep_approx(
+            &PointGroup::C2v {
+                axis: Z,
+                planes: vec![Plane(X, Z), Plane(Y, Z)]
+            },
+            1e-6
+        ),
+        Irrep::B1
+    );
+}
+
+#[test]
 fn test_com() {
     let mol = Molecule::from_str(
         "

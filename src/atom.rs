@@ -4,6 +4,8 @@ use std::{
     str::FromStr,
 };
 
+use approx::AbsDiffEq;
+
 use crate::{Vec3, WEIGHTS};
 
 #[derive(Debug, Clone, Copy)]
@@ -16,8 +18,24 @@ pub struct Atom {
 
 impl PartialEq for Atom {
     fn eq(&self, other: &Self) -> bool {
-        let eps = 1e-7;
+        let eps = 1e-8;
         let close = |a: f64, b: f64| (a - b).abs() < eps;
+        self.atomic_number == other.atomic_number
+            && close(self.x, other.x)
+            && close(self.y, other.y)
+            && close(self.z, other.z)
+    }
+}
+
+impl AbsDiffEq for Atom {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        1e-8
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        let close = |a: f64, b: f64| (a - b).abs() < epsilon;
         self.atomic_number == other.atomic_number
             && close(self.x, other.x)
             && close(self.y, other.y)
@@ -136,6 +154,6 @@ impl Atom {
     }
 
     pub fn weight(&self) -> f64 {
-	WEIGHTS[self.atomic_number]
+        WEIGHTS[self.atomic_number]
     }
 }
