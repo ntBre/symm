@@ -322,7 +322,8 @@ impl Molecule {
 
     /// normalize `self` by translating to the center of mass and orienting the
     /// molecule such that the rotational axes are aligned with the Cartesian
-    /// axes. adapted from SPECTRO
+    /// axes. this part is adapted from SPECTRO. also rotate the molecule so
+    /// that the principal axis is the Z axis and the main plane is the YZ plane
     pub fn normalize(&mut self) {
         let com = self.com();
         // translate to the center of mass
@@ -331,6 +332,26 @@ impl Molecule {
         }
         let moi = self.moi();
         *self = self.transform(moi);
+        let mut sum = [(0, 0.0), (1, 0.0), (2, 0.0)];
+        for atom in &self.atoms {
+            sum[0].1 += atom.weight() * atom.x.abs();
+            sum[1].1 += atom.weight() * atom.y.abs();
+            sum[2].1 += atom.weight() * atom.z.abs();
+        }
+        // reverse sort by float part
+        sum.sort_by(|f, g| g.1.partial_cmp(&f.1).unwrap());
+        let (a, b, c) = (sum[0].0, sum[1].0, sum[2].0);
+        let mut new_atoms = Vec::new();
+        for atom in &self.atoms {
+            let coord = atom.coord();
+            new_atoms.push(Atom {
+                atomic_number: atom.atomic_number,
+                x: coord[c],
+                y: coord[b],
+                z: coord[a],
+            });
+        }
+        *self = Self { atoms: new_atoms }
     }
 
     pub fn point_group(&self) -> PointGroup {
@@ -348,23 +369,44 @@ impl Molecule {
                 planes.push(plane);
             }
         }
+        let axes = if axes.len() > 1 {
+            // multiple choices, so take highest mass-weighted coordinate as the
+            // principal axis
+            let mut sum = [(X, 0.0), (Y, 0.0), (Z, 0.0)];
+            for atom in &self.atoms {
+                sum[0].1 += atom.weight() * atom.x.abs();
+                sum[1].1 += atom.weight() * atom.y.abs();
+                sum[2].1 += atom.weight() * atom.z.abs();
+            }
+            // reverse sort by float part
+            sum.sort_by(|f, g| g.1.partial_cmp(&f.1).unwrap());
+            let mut axes_new = vec![];
+            for s in sum {
+                if axes.contains(&s.0) {
+                    axes_new.push(s.0);
+                }
+            }
+            axes_new
+        } else {
+            axes
+        };
         match (axes.len(), planes.len()) {
             (0, 1) => Cs { plane: planes[0] },
             (1, 0) => C2 { axis: axes[0] },
             (1, 2) => C2v {
-                planes,
                 axis: axes[0],
+                planes,
             },
-            // TODO this should be D2h and I should determine the axis based on
-            // masses like in the Go version, not arbitrarily Z as I'm doing
-            // here. the planes are those containing the principal axis
-            (3, 3) => {
-                todo!();
-                // C2v {
-                //     planes: vec![Plane(X, Z), Plane(Y, Z)],
-                //     axis: Z,
-                // }
-            }
+            // TODO this should really be D2h
+            (3, 3) => C2v {
+                axis: axes[0],
+                // take the two planes containing the principal axis
+                planes: match axes[0] {
+                    X => vec![Plane(X, Y), Plane(X, Z)],
+                    Y => vec![Plane(X, Y), Plane(Y, Z)],
+                    Z => vec![Plane(X, Z), Plane(Y, Z)],
+                },
+            },
             _ => C1,
         }
     }
