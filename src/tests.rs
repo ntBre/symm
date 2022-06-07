@@ -347,7 +347,7 @@ H     -0.00039049  1.76535618 -2.54697919",
                 planes: vec![Plane(X, Z), Plane(Y, Z)]
             },
             1e-6
-        ),
+        ).unwrap(),
         Irrep::B1
     );
 }

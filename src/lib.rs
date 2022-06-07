@@ -523,29 +523,33 @@ impl Molecule {
         self.transform(ref_mat)
     }
 
-    pub fn irrep_approx(&self, pg: &PointGroup, eps: f64) -> Irrep {
+    pub fn irrep_approx(
+        &self,
+        pg: &PointGroup,
+        eps: f64,
+    ) -> Result<Irrep, SymmetryError> {
         use Irrep::*;
         use PointGroup::*;
         match pg {
-            C1 => A,
+            C1 => Ok(A),
             C2 { axis } => {
                 let new = self.rotate(180.0, &axis);
                 if new.abs_diff_eq(self, eps) {
-                    A
+                    Ok(A)
                 } else if new.rotate(180.0, &axis).abs_diff_eq(self, eps) {
-                    B
+                    Ok(B)
                 } else {
-                    panic!("unmatched C2 Irrep");
+                    Err(SymmetryError)
                 }
             }
             Cs { plane } => {
                 let new = self.reflect(&plane);
                 if new.abs_diff_eq(self, eps) {
-                    Ap
+                    Ok(Ap)
                 } else if new.reflect(&plane).abs_diff_eq(self, eps) {
-                    App
+                    Ok(App)
                 } else {
-                    panic!("unmatched Cs Irrep");
+                    Err(SymmetryError)
                 }
             }
             // TODO this is where the plane order can matter - B1 vs B2. as long
@@ -589,11 +593,11 @@ impl Molecule {
                     }
                 };
                 match chars {
-                    (1, 1, 1) => A1,
-                    (1, -1, -1) => A2,
-                    (-1, 1, -1) => B1,
-                    (-1, -1, 1) => B2,
-                    _ => panic!("unmatched C2v Irrep with chars = {:?}", chars),
+                    (1, 1, 1) => Ok(A1),
+                    (1, -1, -1) => Ok(A2),
+                    (-1, 1, -1) => Ok(B1),
+                    (-1, -1, 1) => Ok(B2),
+                    _ => Err(SymmetryError),
                 }
             }
         }
@@ -601,7 +605,10 @@ impl Molecule {
 
     /// calls `irrep_approx` with the value of epsilon used in `PartialEq` for
     /// `Atom` (1e-8)
-    pub fn irrep(&self, pg: &PointGroup) -> Irrep {
-	self.irrep_approx(pg, 1e-8)
+    pub fn irrep(&self, pg: &PointGroup) -> Irrep  {
+        self.irrep_approx(pg, 1e-8).unwrap()
     }
 }
+
+#[derive(Debug, PartialEq)]
+pub struct SymmetryError;
