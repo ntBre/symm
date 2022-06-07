@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::Vec3;
+use crate::{Vec3, WEIGHTS};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Atom {
@@ -16,7 +16,7 @@ pub struct Atom {
 
 impl PartialEq for Atom {
     fn eq(&self, other: &Self) -> bool {
-        let eps = 1e-8;
+        let eps = 1e-7;
         let close = |a: f64, b: f64| (a - b).abs() < eps;
         self.atomic_number == other.atomic_number
             && close(self.x, other.x)
@@ -133,5 +133,9 @@ impl Atom {
 
     pub fn coord(&self) -> Vec<f64> {
         vec![self.x, self.y, self.z]
+    }
+
+    pub fn weight(&self) -> f64 {
+	WEIGHTS[self.atomic_number]
     }
 }
