@@ -599,79 +599,9 @@ impl Molecule {
         }
     }
 
+    /// calls `irrep_approx` with the value of epsilon used in `PartialEq` for
+    /// `Atom` (1e-8)
     pub fn irrep(&self, pg: &PointGroup) -> Irrep {
-        use Irrep::*;
-        use PointGroup::*;
-        match pg {
-            C1 => A,
-            C2 { axis } => {
-                let new = self.rotate(180.0, &axis);
-                if new == *self {
-                    A
-                } else if new.rotate(180.0, &axis) == *self {
-                    B
-                } else {
-                    panic!("unmatched C2 Irrep");
-                }
-            }
-            Cs { plane } => {
-                let new = self.reflect(&plane);
-                if new == *self {
-                    Ap
-                } else if new.reflect(&plane) == *self {
-                    App
-                } else {
-                    panic!("unmatched Cs Irrep");
-                }
-            }
-            // TODO this is where the plane order can matter - B1 vs B2. as long
-            // as you call `irrep` multiple times with the same PointGroup, you
-            // should get consistent results at least. source of the issue is in
-            // point_group - order of planes there should be based on something
-            // besides random choice of iteration order in the implementation
-            // (mass?)
-            C2v { axis, planes } => {
-                let mut chars = (0, 0, 0);
-                // TODO would be nice to abstract these into some kind of apply
-                // function
-                chars.0 = {
-                    let new = self.rotate(180.0, &axis);
-                    if new == *self {
-                        1 // the same
-                    } else if new.rotate(180.0, &axis) == *self {
-                        -1 // the opposite
-                    } else {
-                        0 // something else
-                    }
-                };
-                chars.1 = {
-                    let new = self.reflect(&planes[0]);
-                    if new == *self {
-                        1
-                    } else if new.reflect(&planes[0]) == *self {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                chars.2 = {
-                    let new = self.reflect(&planes[1]);
-                    if new == *self {
-                        1
-                    } else if new.reflect(&planes[1]) == *self {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                match chars {
-                    (1, 1, 1) => A1,
-                    (1, -1, -1) => A2,
-                    (-1, 1, -1) => B1,
-                    (-1, -1, 1) => B2,
-                    _ => panic!("unmatched C2v Irrep with chars = {:?}", chars),
-                }
-            }
-        }
+	self.irrep_approx(pg, 1e-8)
     }
 }
