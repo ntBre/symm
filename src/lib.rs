@@ -316,6 +316,33 @@ impl Molecule {
         }
     }
 
+    /// convert the coordinates in `self` from Bohr to Angstroms
+    pub fn to_angstrom(&mut self) {
+        for atom in self.atoms.iter_mut() {
+            atom.x *= ANGBOHR;
+            atom.y *= ANGBOHR;
+            atom.z *= ANGBOHR;
+        }
+    }
+
+    /// a buddy is a mapping from one Vec<Atom> to another. The returned Vec
+    /// contains the indices in `self` that correspond to atoms in `other`.
+    /// `eps` is used in the `Atom` `AbsDiffEq` call to check the equality of
+    /// two atoms.
+    pub fn detect_buddies(&self, other: &Self, eps: f64) -> Vec<usize> {
+	assert_eq!(self.atoms.len(), other.atoms.len());
+	let mut ret = vec![0; self.atoms.len()];
+	for (i, atom) in self.atoms.iter().enumerate() {
+	    for (j, btom) in other.atoms.iter().enumerate() {
+		if atom.abs_diff_eq(btom, eps) {
+		    ret[i] = j;
+		    break;
+		}
+	    }
+	}
+	ret
+    }
+
     /// compute the center of mass of `self`, assuming the most abundant isotope
     /// masses
     fn com(&self) -> Vec3 {
@@ -394,17 +421,21 @@ impl Molecule {
     }
 
     pub fn point_group(&self) -> PointGroup {
+        self.point_group_approx(1e-8)
+    }
+
+    pub fn point_group_approx(&self, eps: f64) -> PointGroup {
         use Axis::*;
         use PointGroup::*;
         let mut axes = Vec::new();
         let mut planes = Vec::new();
         for ax in vec![X, Y, Z] {
-            if self.rotate(180.0, &ax) == *self {
+            if self.rotate(180.0, &ax).abs_diff_eq(self, eps) {
                 axes.push(ax);
             }
         }
         for plane in vec![Plane(X, Y), Plane(X, Z), Plane(Y, Z)] {
-            if self.reflect(&plane) == *self {
+            if self.reflect(&plane).abs_diff_eq(self, eps) {
                 planes.push(plane);
             }
         }
@@ -605,7 +636,7 @@ impl Molecule {
 
     /// calls `irrep_approx` with the value of epsilon used in `PartialEq` for
     /// `Atom` (1e-8)
-    pub fn irrep(&self, pg: &PointGroup) -> Irrep  {
+    pub fn irrep(&self, pg: &PointGroup) -> Irrep {
         self.irrep_approx(pg, 1e-8).unwrap()
     }
 }
