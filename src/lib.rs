@@ -210,7 +210,11 @@ impl FromStr for Molecule {
     /// into a molecule
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut ret = Self::default();
-        let atomic_symbols = HashMap::from([("H", 1), ("C", 6), ("O", 8)]);
+        let atomic_symbols: HashMap<_, _> = NUMBER_TO_SYMBOL
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (s.to_string(), i))
+            .collect();
         for line in s.lines() {
             let fields = line.split_whitespace().collect::<Vec<_>>();
             if fields.len() == 4 {
@@ -330,17 +334,17 @@ impl Molecule {
     /// `eps` is used in the `Atom` `AbsDiffEq` call to check the equality of
     /// two atoms.
     pub fn detect_buddies(&self, other: &Self, eps: f64) -> Vec<usize> {
-	assert_eq!(self.atoms.len(), other.atoms.len());
-	let mut ret = vec![0; self.atoms.len()];
-	for (i, atom) in self.atoms.iter().enumerate() {
-	    for (j, btom) in other.atoms.iter().enumerate() {
-		if atom.abs_diff_eq(btom, eps) {
-		    ret[i] = j;
-		    break;
-		}
-	    }
-	}
-	ret
+        assert_eq!(self.atoms.len(), other.atoms.len());
+        let mut ret = vec![0; self.atoms.len()];
+        for (i, atom) in self.atoms.iter().enumerate() {
+            for (j, btom) in other.atoms.iter().enumerate() {
+                if atom.abs_diff_eq(btom, eps) {
+                    ret[i] = j;
+                    break;
+                }
+            }
+        }
+        ret
     }
 
     /// compute the center of mass of `self`, assuming the most abundant isotope
