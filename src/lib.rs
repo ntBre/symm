@@ -108,19 +108,22 @@ pub enum Irrep {
     A2,
 }
 
-impl ToString for Irrep {
-    fn to_string(&self) -> String {
-        match self {
-            Irrep::A => "A",
-            Irrep::B => "B",
-            Irrep::Ap => "A'",
-            Irrep::App => "A''",
-            Irrep::A1 => "A1",
-            Irrep::B1 => "B1",
-            Irrep::B2 => "B2",
-            Irrep::A2 => "A2",
-        }
-        .to_string()
+impl Display for Irrep {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Irrep::A => "A",
+                Irrep::B => "B",
+                Irrep::Ap => "A'",
+                Irrep::App => "A''",
+                Irrep::A1 => "A1",
+                Irrep::B1 => "B1",
+                Irrep::B2 => "B2",
+                Irrep::A2 => "A2",
+            }
+        )
     }
 }
 
