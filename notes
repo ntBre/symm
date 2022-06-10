@@ -1,0 +1,42 @@
+b, a, c
+normalized mol =
+C      0.00000000  0.89768251  0.00000000
+C      0.67626534  2.16470051  0.00000000
+C     -0.67626534  2.16470051  0.00000000
+H      1.55801903  2.74202667 -0.00000000
+H     -1.55801903  2.74202667  0.00000000
+
+Point Group = C2v(Y, Plane(X, Y), Plane(Y, Z))
+
+irrep 0 = A1
+irrep 1 = A1
+irrep 2 = A1
+irrep 3 = A1
+irrep 4 = B1
+irrep 5 = B1
+irrep 6 = B1
+irrep 7 = B2
+irrep 8 = A2
+
+===========
+c, b, a
+normalized mol =
+C      0.00000000  0.00000000  0.89768251
+C      0.00000000  0.67626534  2.16470051
+C      0.00000000 -0.67626534  2.16470051
+H     -0.00000000  1.55801903  2.74202667
+H      0.00000000 -1.55801903  2.74202667
+
+Point Group = C2v(Z, Plane(X, Z), Plane(Y, Z))
+
+irrep 0 = A1
+irrep 1 = A1
+irrep 2 = A1
+irrep 3 = A1
+irrep 4 = B1
+irrep 5 = B2
+irrep 6 = B2
+irrep 7 = B2
+irrep 8 = A2
+
+==========

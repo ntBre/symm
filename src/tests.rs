@@ -161,8 +161,8 @@ fn test_point_group() {
     H        1.595193    0.906925    0.000000
 ",
             pg: C2v {
-                axis: Z,
-                planes: vec![Plane(X, Z), Plane(Y, Z)],
+                axis: Y,
+                planes: vec![Plane(X, Y), Plane(Y, Z)],
             },
         },
         Test {
@@ -174,13 +174,12 @@ fn test_point_group() {
          H       0.8934572415   2.2429362063  -0.0000000000
 ",
             pg: C2v {
-                axis: Z,
-                planes: vec![Plane(X, Z), Plane(Y, Z)],
+                axis: Y,
+                planes: vec![Plane(X, Y), Plane(Y, Z)],
             },
         },
         Test {
-            mol: "
-C      0.00000000 -0.00000000 -0.66360460
+            mol: "C      0.00000000 -0.00000000 -0.66360460
 H     -0.00000000  0.90205573 -1.26058509
 H     -0.00000000 -0.90205573 -1.26058509
 C     -0.00000000  0.00000000  0.66360460
@@ -192,24 +191,11 @@ H     -0.00000000 -0.90205573  1.26058509
                 planes: vec![Plane(X, Z), Plane(Y, Z)],
             },
         },
-        Test {
-            mol: "C     -0.00000000 -0.66358892 -0.00000000
-H      0.00000000 -1.26056499  0.90205808
-H      0.00000000 -1.26056499 -0.90205808
-C     -0.00000000  0.66358892  0.00000000
-H      0.00000000  1.26056499  0.90205808
-H      0.00000000  1.26056499 -0.90205808
-",
-            pg: C2v {
-                axis: Z,
-                planes: vec![Plane(X, Z), Plane(Y, Z)],
-            },
-        },
     ];
-    for (i, test) in tests.iter().enumerate() {
+    for test in tests {
         let mut mol = Molecule::from_str(test.mol).unwrap();
         mol.normalize();
-        assert_eq!(mol.point_group(), test.pg, "issue at index {i}");
+        assert_eq!(mol.point_group(), test.pg,);
     }
 }
 
@@ -284,6 +270,7 @@ H        0.0000000000       -1.7464471915       -2.3268965777
         Irrep::B2
     );
 }
+
 
 #[test]
 fn test_c2h4_irrep10() {

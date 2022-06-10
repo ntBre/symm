@@ -79,16 +79,15 @@ pub enum PointGroup {
 
 impl Display for PointGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                PointGroup::C1 => "C1",
-                PointGroup::C2 { axis: _ } => "C2",
-                PointGroup::Cs { plane: _ } => "Cs",
-                PointGroup::C2v { axis: _, planes: _ } => "C2v",
-            }
-        )
+        match self {
+            PointGroup::C1 => write!(f, "C1"),
+            PointGroup::C2 { axis: a } => write!(f, "C2({})", a),
+            PointGroup::Cs { plane: p } => write!(f, "Cs({})", p),
+            PointGroup::C2v {
+                axis: a,
+                planes: ps,
+            } => write!(f, "C2v({}, {}, {})", a, ps[0], ps[1]),
+        }
     }
 }
 
@@ -395,8 +394,7 @@ impl Molecule {
 
     /// normalize `self` by translating to the center of mass and orienting the
     /// molecule such that the rotational axes are aligned with the Cartesian
-    /// axes. this part is adapted from SPECTRO. also rotate the molecule so
-    /// that the principal axis is the Z axis and the main plane is the YZ plane
+    /// axes. adapted from SPECTRO
     pub fn normalize(&mut self) {
         let com = self.com();
         // translate to the center of mass
@@ -405,6 +403,7 @@ impl Molecule {
         }
         let moi = self.moi();
         *self = self.transform(moi);
+	// trying this back in
         let mut sum = [(0, 0.0), (1, 0.0), (2, 0.0)];
         for atom in &self.atoms {
             sum[0].1 += atom.weight() * atom.x.abs();
