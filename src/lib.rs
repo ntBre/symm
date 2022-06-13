@@ -48,7 +48,7 @@ impl Display for Axis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}",
+            "Axis({})",
             match self {
                 Axis::X => "X",
                 Axis::Y => "Y",
@@ -62,6 +62,19 @@ impl Display for Axis {
 // plane is described by (a, b, c) in the equation ax + by + cz = 0
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Plane(Axis, Axis);
+
+impl Plane {
+    /// return a normalized version of Plane
+    fn new(ax: Axis, bx: Axis) -> Self {
+        use Axis::*;
+        match (ax, bx) {
+            (X, Y) | (Y, X) => Plane(X, Y),
+            (X, Z) | (Z, X) => Plane(X, Z),
+            (Y, Z) | (Z, Y) => Plane(Y, Z),
+            _ => panic!("impossible Axis combination for Plane"),
+        }
+    }
+}
 
 impl Display for Plane {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -102,8 +115,8 @@ pub enum Irrep {
     App,
     // C2v
     A1,
-    B1,
     B2,
+    B1,
     A2,
 }
 
@@ -403,8 +416,7 @@ impl Molecule {
         }
         let moi = self.moi();
         *self = self.transform(moi);
-	return;
-	// trying this back in
+        // trying this back in
         let mut sum = [(0, 0.0), (1, 0.0), (2, 0.0)];
         for atom in &self.atoms {
             sum[0].1 += atom.weight() * atom.x.abs();
@@ -446,19 +458,13 @@ impl Molecule {
                 planes.push(plane);
             }
         }
+
+        let axis_sum = self.axis_sum();
         let axes = if axes.len() > 1 {
             // multiple choices, so take highest mass-weighted coordinate as the
             // principal axis
-            let mut sum = [(X, 0.0), (Y, 0.0), (Z, 0.0)];
-            for atom in &self.atoms {
-                sum[0].1 += atom.weight() * atom.x.abs();
-                sum[1].1 += atom.weight() * atom.y.abs();
-                sum[2].1 += atom.weight() * atom.z.abs();
-            }
-            // reverse sort by float part
-            sum.sort_by(|f, g| g.1.partial_cmp(&f.1).unwrap());
             let mut axes_new = vec![];
-            for s in sum {
+            for s in axis_sum {
                 if axes.contains(&s.0) {
                     axes_new.push(s.0);
                 }
@@ -467,6 +473,22 @@ impl Molecule {
         } else {
             axes
         };
+
+        let planes = if planes.len() > 1 {
+            // the order of planes is
+	    // 1. Plane(highest axis, third-highest axis)
+            // 2. Plane(highest axis, second-highest axis)
+            // 3. Plane(second-highest, third-highest)
+            [
+                Plane::new(axis_sum[0].0, axis_sum[2].0),
+                Plane::new(axis_sum[0].0, axis_sum[1].0),
+                Plane::new(axis_sum[1].0, axis_sum[2].0),
+            ][..planes.len()]
+                .to_vec()
+        } else {
+            planes
+        };
+        // TODO sort the planes too
         match (axes.len(), planes.len()) {
             (0, 1) => Cs { plane: planes[0] },
             (1, 0) => C2 { axis: axes[0] },
@@ -486,6 +508,23 @@ impl Molecule {
             },
             _ => C1,
         }
+    }
+
+    /// compute the mass-weighted sum of the axes in `self` and sort them such
+    /// that axis with the highest sum is first. This axis is the principal
+    /// axis; combining the principal axis with the second-highest sum gives the
+    /// main plane
+    fn axis_sum(&self) -> [(Axis, f64); 3] {
+        use Axis::*;
+        let mut sum = [(X, 0.0), (Y, 0.0), (Z, 0.0)];
+        for atom in &self.atoms {
+            sum[0].1 += atom.weight() * atom.x.abs();
+            sum[1].1 += atom.weight() * atom.y.abs();
+            sum[2].1 += atom.weight() * atom.z.abs();
+        }
+        // reverse sort by float part
+        sum.sort_by(|f, g| g.1.partial_cmp(&f.1).unwrap());
+        sum
     }
 
     /// apply the transformation matrix `mat` to the atoms in `self` and return
