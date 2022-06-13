@@ -278,11 +278,18 @@ impl Add<Vec<f64>> for Molecule {
 
 impl Display for Molecule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let width = f.width().unwrap_or(12);
+        let precision = f.precision().unwrap_or(8);
         for atom in &self.atoms {
             writeln!(
                 f,
-                "{:5}{:12.8}{:12.8}{:12.8}",
-                NUMBER_TO_SYMBOL[atom.atomic_number], atom.x, atom.y, atom.z
+                "{:5}{:w$.p$}{:w$.p$}{:w$.p$}",
+                NUMBER_TO_SYMBOL[atom.atomic_number],
+                atom.x,
+                atom.y,
+                atom.z,
+                w = width,
+                p = precision,
             )?;
         }
         Ok(())
@@ -476,7 +483,7 @@ impl Molecule {
 
         let planes = if planes.len() > 1 {
             // the order of planes is
-	    // 1. Plane(highest axis, third-highest axis)
+            // 1. Plane(highest axis, third-highest axis)
             // 2. Plane(highest axis, second-highest axis)
             // 3. Plane(second-highest, third-highest)
             [
