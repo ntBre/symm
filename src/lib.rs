@@ -423,6 +423,7 @@ impl Molecule {
         }
         let moi = self.moi();
         *self = self.transform(moi);
+	return;
         // trying this back in
         let mut sum = [(0, 0.0), (1, 0.0), (2, 0.0)];
         for atom in &self.atoms {
