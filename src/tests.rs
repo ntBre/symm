@@ -136,12 +136,14 @@ fn test_point_group() {
     use PointGroup::*;
 
     struct Test<'a> {
+        msg: &'a str,
         mol: &'a str,
         pg: PointGroup,
     }
 
     let tests = vec![
         Test {
+            msg: "water",
             mol: "
   O           0.000000000    0.000000000   -0.124238453
   H           0.000000000    1.431390207    0.986041184
@@ -153,6 +155,7 @@ fn test_point_group() {
             },
         },
         Test {
+            msg: "c3h2",
             mol: "
     C        0.000000   -0.888844    0.000000
     C       -0.662697    0.368254    0.000000
@@ -162,10 +165,11 @@ fn test_point_group() {
 ",
             pg: C2v {
                 axis: Y,
-                planes: vec![Plane(X, Y), Plane(Y, Z)],
+                planes: vec![Plane(Y, Z), Plane(X, Y)],
             },
         },
         Test {
+            msg: "c3h2 2",
             mol: "
          C       0.0000000000   0.0000000000   0.0000000000
          C       1.4361996439   0.0000000000   0.0000000000
@@ -175,10 +179,11 @@ fn test_point_group() {
 ",
             pg: C2v {
                 axis: Y,
-                planes: vec![Plane(X, Y), Plane(Y, Z)],
+                planes: vec![Plane(Y, Z), Plane(X, Y)],
             },
         },
         Test {
+            msg: "ethylene",
             mol: "C      0.00000000 -0.00000000 -0.66360460
 H     -0.00000000  0.90205573 -1.26058509
 H     -0.00000000 -0.90205573 -1.26058509
@@ -195,7 +200,14 @@ H     -0.00000000 -0.90205573  1.26058509
     for test in tests {
         let mut mol = Molecule::from_str(test.mol).unwrap();
         mol.normalize();
-        assert_eq!(mol.point_group(), test.pg,);
+        if mol.point_group() != test.pg {
+            assert_eq!(
+                mol.point_group(),
+                test.pg,
+                "wrong point group on {}",
+                test.msg
+            );
+        }
     }
 }
 
@@ -226,7 +238,7 @@ fn test_irrep() {
                 -0.01, 0.00, 0.00, 0.17, -0.10, 0.00, 0.17, 0.10, 0.00, -0.59,
                 0.34, 0.00, -0.59, -0.34, 0.00,
             ],
-            B1,
+            B2,
         ),
         (
             vec![
@@ -240,7 +252,7 @@ fn test_irrep() {
                 0.00, 0.00, 0.16, 0.00, 0.00, -0.27, 0.00, 0.00, -0.27, 0.00,
                 0.00, 0.64, 0.00, 0.00, 0.64,
             ],
-            B2,
+            B1,
         ),
     ];
     for test in tests {
@@ -270,7 +282,6 @@ H        0.0000000000       -1.7464471915       -2.3268965777
         Irrep::B2
     );
 }
-
 
 #[test]
 fn test_c2h4_irrep10() {
@@ -334,7 +345,8 @@ H     -0.00039049  1.76535618 -2.54697919",
                 planes: vec![Plane(X, Z), Plane(Y, Z)]
             },
             1e-6
-        ).unwrap(),
+        )
+        .unwrap(),
         Irrep::B1
     );
 }

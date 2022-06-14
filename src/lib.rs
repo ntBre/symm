@@ -423,28 +423,6 @@ impl Molecule {
         }
         let moi = self.moi();
         *self = self.transform(moi);
-	return;
-        // trying this back in
-        let mut sum = [(0, 0.0), (1, 0.0), (2, 0.0)];
-        for atom in &self.atoms {
-            sum[0].1 += atom.weight() * atom.x.abs();
-            sum[1].1 += atom.weight() * atom.y.abs();
-            sum[2].1 += atom.weight() * atom.z.abs();
-        }
-        // reverse sort by float part
-        sum.sort_by(|f, g| g.1.partial_cmp(&f.1).unwrap());
-        let (a, b, c) = (sum[0].0, sum[1].0, sum[2].0);
-        let mut new_atoms = Vec::new();
-        for atom in &self.atoms {
-            let coord = atom.coord();
-            new_atoms.push(Atom {
-                atomic_number: atom.atomic_number,
-                x: coord[c],
-                y: coord[b],
-                z: coord[a],
-            });
-        }
-        *self = Self { atoms: new_atoms }
     }
 
     pub fn point_group(&self) -> PointGroup {
@@ -496,7 +474,6 @@ impl Molecule {
         } else {
             planes
         };
-        // TODO sort the planes too
         match (axes.len(), planes.len()) {
             (0, 1) => Cs { plane: planes[0] },
             (1, 0) => C2 { axis: axes[0] },
