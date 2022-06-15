@@ -395,7 +395,7 @@ impl Molecule {
     /// normalize `self` by translating to the center of mass and orienting the
     /// molecule such that the rotational axes are aligned with the Cartesian
     /// axes. adapted from SPECTRO
-    pub fn normalize(&mut self) {
+    pub fn normalize(&mut self) -> &mut Self {
         let com = self.com();
         // translate to the center of mass
         for atom in self.atoms.iter_mut() {
@@ -403,8 +403,12 @@ impl Molecule {
         }
         let moi = self.moi();
         *self = self.transform(moi);
-	return;
-	// trying this back in
+        self
+    }
+
+    /// reorder the axes of `self` such that the z-axis has the most mass along
+    /// it
+    pub fn reorder(&mut self) -> &mut Self {
         let mut sum = [(0, 0.0), (1, 0.0), (2, 0.0)];
         for atom in &self.atoms {
             sum[0].1 += atom.weight() * atom.x.abs();
@@ -424,7 +428,8 @@ impl Molecule {
                 z: coord[a],
             });
         }
-        *self = Self { atoms: new_atoms }
+        *self = Self { atoms: new_atoms };
+        self
     }
 
     pub fn point_group(&self) -> PointGroup {
