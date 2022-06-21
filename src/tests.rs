@@ -193,7 +193,7 @@ H     -0.00000000 -0.90205573  1.26058509
 ",
             pg: D2h {
                 axes: vec![Z, Y, X],
-                planes: vec![Plane(X, Z), Plane(Y, Z), Plane(X, Y)],
+                planes: vec![Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
             },
         },
         Test {
@@ -206,7 +206,7 @@ H     -0.00000000 -0.90205573  1.26058509
 ",
             pg: D2h {
                 axes: vec![Z, Y, X],
-                planes: vec![Plane(X, Z), Plane(Y, Z), Plane(X, Y)],
+                planes: vec![Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
             },
         },
     ];
@@ -361,6 +361,31 @@ H     -0.00039049  1.76535618 -2.54697919",
         )
         .unwrap(),
         Irrep::B1
+    );
+}
+#[test]
+fn test_c2h4_d2h() {
+    let mol = Molecule::from_str(
+        "
+C      0.66679330  0.00000000 -0.42664810
+H      1.23098540 -0.92361100  0.39872610
+H      1.23098540  0.92361100  0.39872610
+C     -0.66679330  0.00000000  0.42665160
+H     -1.23098540 -0.92361100 -0.39873220
+H     -1.23098540  0.92361100 -0.39873220
+",
+    )
+    .unwrap();
+    assert_eq!(
+        mol.irrep_approx(
+            &PointGroup::D2h {
+                axes: vec![Z, X, Y],
+                planes: vec![Plane(X, Y), Plane(Y, Z), Plane(X, Z)]
+            },
+            1e-5
+        )
+        .unwrap(),
+        Irrep::B3g
     );
 }
 

@@ -538,7 +538,11 @@ impl Molecule {
                 axis: axes[0],
                 planes,
             },
-            (3, 3) => D2h { axes, planes },
+            (3, 3) => D2h {
+                axes,
+                // for some reason you put the least mass plane first
+                planes: vec![planes[2], planes[0], planes[1]],
+            },
             _ => C1,
         }
     }
