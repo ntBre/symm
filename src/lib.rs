@@ -19,7 +19,7 @@ type Mat3 = na::Matrix3<f64>;
 pub const ANGBOHR: f64 = 0.5291_772_109;
 
 /// atomic weights from https://physics.nist.gov
-const WEIGHTS: [f64; 10] = [
+const WEIGHTS: [f64; 15] = [
     0.0,
     1.007_825_032,
     3.016_029_320,
@@ -30,6 +30,11 @@ const WEIGHTS: [f64; 10] = [
     14.003_074_004_43,
     15.994_914_619_57,
     18.998_403_162_73,
+    19.992_440_1762,
+    22.989_769_2820,
+    23.985_041_697,
+    26.981_538_53,
+    27.976_926_534_65,
 ];
 
 // TODO expand beyond cartesian axes. an alternative formulation of this is to
@@ -88,6 +93,7 @@ pub enum PointGroup {
     C2 { axis: Axis },
     Cs { plane: Plane },
     C2v { axis: Axis, planes: Vec<Plane> },
+    D2h { axes: Vec<Axis>, planes: Vec<Plane> },
 }
 
 impl Display for PointGroup {
@@ -100,6 +106,13 @@ impl Display for PointGroup {
                 axis: a,
                 planes: ps,
             } => write!(f, "C2v({}, {}, {})", a, ps[0], ps[1]),
+            PointGroup::D2h { axes, planes } => {
+                write!(
+                    f,
+                    "C2v({}, {}, {}, {}, {}, {})",
+                    axes[0], axes[1], axes[2], planes[0], planes[1], planes[2]
+                )
+            }
         }
     }
 }
@@ -118,6 +131,15 @@ pub enum Irrep {
     B2,
     B1,
     A2,
+    // D2h
+    Ag,
+    B1g,
+    B2g,
+    B3g,
+    Au,
+    B1u,
+    B2u,
+    B3u,
 }
 
 impl Display for Irrep {
@@ -134,6 +156,14 @@ impl Display for Irrep {
                 Irrep::B1 => "B1",
                 Irrep::B2 => "B2",
                 Irrep::A2 => "A2",
+                Irrep::Ag => "Ag",
+                Irrep::B1g => "B1g",
+                Irrep::B2g => "B2g",
+                Irrep::B3g => "B3g",
+                Irrep::Au => "Au",
+                Irrep::B1u => "B1u",
+                Irrep::B2u => "B2u",
+                Irrep::B3u => "B3u",
             }
         )
     }
@@ -508,16 +538,7 @@ impl Molecule {
                 axis: axes[0],
                 planes,
             },
-            // TODO this should really be D2h
-            (3, 3) => C2v {
-                axis: axes[0],
-                // take the two planes containing the principal axis
-                planes: match axes[0] {
-                    X => vec![Plane(X, Y), Plane(X, Z)],
-                    Y => vec![Plane(X, Y), Plane(Y, Z)],
-                    Z => vec![Plane(X, Z), Plane(Y, Z)],
-                },
-            },
+            (3, 3) => D2h { axes, planes },
             _ => C1,
         }
     }
@@ -686,6 +707,92 @@ impl Molecule {
                     (1, -1, -1) => Ok(A2),
                     (-1, 1, -1) => Ok(B1),
                     (-1, -1, 1) => Ok(B2),
+                    _ => Err(SymmetryError),
+                }
+            }
+            D2h { axes, planes } => {
+                // NOTE: skipping the inversion for now
+
+                // C2, C2, C2, σ, σ, σ
+                let mut chars = (0, 0, 0, 0, 0, 0);
+                // first axis
+                chars.0 = {
+                    let new = self.rotate(180.0, &axes[0]);
+                    if new.abs_diff_eq(self, eps) {
+                        1 // the same
+                    } else if new.rotate(180.0, &axes[0]).abs_diff_eq(self, eps)
+                    {
+                        -1 // the opposite
+                    } else {
+                        0 // something else
+                    }
+                };
+                // second axis
+                chars.1 = {
+                    let new = self.rotate(180.0, &axes[1]);
+                    if new.abs_diff_eq(self, eps) {
+                        1 // the same
+                    } else if new.rotate(180.0, &axes[1]).abs_diff_eq(self, eps)
+                    {
+                        -1 // the opposite
+                    } else {
+                        0 // something else
+                    }
+                };
+                // third axis
+                chars.2 = {
+                    let new = self.rotate(180.0, &axes[2]);
+                    if new.abs_diff_eq(self, eps) {
+                        1 // the same
+                    } else if new.rotate(180.0, &axes[2]).abs_diff_eq(self, eps)
+                    {
+                        -1 // the opposite
+                    } else {
+                        0 // something else
+                    }
+                };
+                // first plane
+                chars.3 = {
+                    let new = self.reflect(&planes[0]);
+                    if new.abs_diff_eq(self, eps) {
+                        1
+                    } else if new.reflect(&planes[0]).abs_diff_eq(self, eps) {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                // second plane
+                chars.4 = {
+                    let new = self.reflect(&planes[1]);
+                    if new.abs_diff_eq(self, eps) {
+                        1
+                    } else if new.reflect(&planes[1]).abs_diff_eq(self, eps) {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                // third plane
+                chars.5 = {
+                    let new = self.reflect(&planes[2]);
+                    if new.abs_diff_eq(self, eps) {
+                        1
+                    } else if new.reflect(&planes[2]).abs_diff_eq(self, eps) {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                match chars {
+                    (1, 1, 1, 1, 1, 1) => Ok(Ag),
+                    (1, -1, -1, 1, -1, -1) => Ok(B1g),
+                    (-1, 1, -1, -1, 1, -1) => Ok(B2g),
+                    (-1, -1, 1, -1, -1, 1) => Ok(B3g),
+                    (1, 1, 1, -1, -1, -1) => Ok(Au),
+                    (1, -1, -1, -1, 1, 1) => Ok(B1u),
+                    (-1, 1, -1, 1, -1, 1) => Ok(B2u),
+                    (-1, -1, 1, 1, 1, -1) => Ok(B3u),
                     _ => Err(SymmetryError),
                 }
             }
