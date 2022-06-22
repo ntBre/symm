@@ -94,8 +94,8 @@ pub enum PointGroup {
     C1,
     C2 { axis: Axis },
     Cs { plane: Plane },
-    C2v { axis: Axis, planes: Vec<Plane> },
-    D2h { axes: Vec<Axis>, planes: Vec<Plane> },
+    C2v { axis: Axis, planes: [Plane; 2] },
+    D2h { axes: Vec<Axis>, planes: [Plane; 3] },
 }
 
 impl Display for PointGroup {
@@ -111,7 +111,7 @@ impl Display for PointGroup {
             PointGroup::D2h { axes, planes } => {
                 write!(
                     f,
-                    "C2v({}, {}, {}, {}, {}, {})",
+                    "D2h({}, {}, {}, {}, {}, {})",
                     axes[0], axes[1], axes[2], planes[0], planes[1], planes[2]
                 )
             }
@@ -486,12 +486,12 @@ impl Molecule {
             (1, 0) => C2 { axis: axes[0] },
             (1, 2) => C2v {
                 axis: axes[0],
-                planes,
+                planes: [planes[0], planes[1]],
             },
             (3, 3) => D2h {
                 axes,
                 // for some reason you put the least mass plane first
-                planes: vec![planes[2], planes[0], planes[1]],
+                planes: [planes[2], planes[0], planes[1]],
             },
             _ => C1,
         }
@@ -603,7 +603,10 @@ impl Molecule {
                 } else if new.rotate(180.0, &axis).abs_diff_eq(self, eps) {
                     Ok(B)
                 } else {
-                    Err(SymmetryError)
+                    Err(SymmetryError::new(&format!(
+                        "failed to match {} for C2",
+                        axis
+                    )))
                 }
             }
             Cs { plane } => {
@@ -613,7 +616,9 @@ impl Molecule {
                 } else if new.reflect(&plane).abs_diff_eq(self, eps) {
                     Ok(App)
                 } else {
-                    Err(SymmetryError)
+                    Err(SymmetryError::new(&format!(
+                        "failed to match {plane} for Cs"
+                    )))
                 }
             }
             // TODO this is where the plane order can matter - B1 vs B2. as long
@@ -661,7 +666,10 @@ impl Molecule {
                     (1, -1, -1) => Ok(A2),
                     (-1, 1, -1) => Ok(B1),
                     (-1, -1, 1) => Ok(B2),
-                    _ => Err(SymmetryError),
+                    _ => Err(SymmetryError::new(&format!(
+                        "failed to match {:?}",
+                        chars
+                    ))),
                 }
             }
             D2h { axes, planes } => {
@@ -747,7 +755,10 @@ impl Molecule {
                     (1, -1, -1, -1, 1, 1) => Ok(B1u),
                     (-1, 1, -1, 1, -1, 1) => Ok(B2u),
                     (-1, -1, 1, 1, 1, -1) => Ok(B3u),
-                    _ => Err(SymmetryError),
+                    _ => Err(SymmetryError::new(&format!(
+                        "failed to match {:?} on\n{}",
+                        chars, &self
+                    ))),
                 }
             }
         }
@@ -760,5 +771,19 @@ impl Molecule {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct SymmetryError;
+#[derive(Debug, Default, PartialEq)]
+pub struct SymmetryError {
+    msg: String,
+}
+
+impl SymmetryError {
+    pub fn new(msg: &str) -> Self {
+        Self {
+            msg: String::from(msg),
+        }
+    }
+
+    pub fn msg(&self) -> &str {
+        self.msg.as_ref()
+    }
+}
