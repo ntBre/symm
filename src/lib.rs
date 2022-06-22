@@ -9,6 +9,8 @@ mod tests;
 use approx::AbsDiffEq;
 pub use atom::*;
 pub mod atom;
+pub mod irrep;
+pub use irrep::*;
 
 use nalgebra as na;
 
@@ -114,58 +116,6 @@ impl Display for PointGroup {
                 )
             }
         }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
-pub enum Irrep {
-    // C1
-    A,
-    // C2
-    B,
-    // Cs - p = prime
-    Ap,
-    App,
-    // C2v
-    A1,
-    B2,
-    B1,
-    A2,
-    // D2h
-    Ag,
-    B1g,
-    B2g,
-    B3g,
-    Au,
-    B1u,
-    B2u,
-    B3u,
-}
-
-impl Display for Irrep {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Irrep::A => "A",
-                Irrep::B => "B",
-                Irrep::Ap => "A'",
-                Irrep::App => "A''",
-                Irrep::A1 => "A1",
-                Irrep::B1 => "B1",
-                Irrep::B2 => "B2",
-                Irrep::A2 => "A2",
-                Irrep::Ag => "Ag",
-                Irrep::B1g => "B1g",
-                Irrep::B2g => "B2g",
-                Irrep::B3g => "B3g",
-                Irrep::Au => "Au",
-                Irrep::B1u => "B1u",
-                Irrep::B2u => "B2u",
-                Irrep::B3u => "B3u",
-            }
-        )
     }
 }
 
