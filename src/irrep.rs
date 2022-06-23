@@ -27,8 +27,7 @@ pub enum Irrep {
 
 impl Display for Irrep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
+        f.pad(&format!(
             "{}",
             match self {
                 Irrep::A => "A",
@@ -48,7 +47,7 @@ impl Display for Irrep {
                 Irrep::B2u => "B2u",
                 Irrep::B3u => "B3u",
             }
-        )
+        ))
     }
 }
 
