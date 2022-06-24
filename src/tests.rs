@@ -419,6 +419,22 @@ H      1.36750740  0.95203650  0.46264510
             eps: 1e-4,
             want: Irrep::B3u,
         },
+        Test {
+            mol: "
+C     -0.75776430  0.00000000 -0.26815500
+H     -1.39084240  0.94668350  0.46270250
+H     -1.39084240 -0.94668350  0.46260040
+C      0.75776430  0.00000000 -0.26815510
+H      1.39084240  0.94668350  0.46260050
+H      1.39084240 -0.94668350  0.46270260
+",
+            pg: PointGroup::D2h {
+                axes: vec![X, Y, Z],
+                planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
+            },
+            eps: 1e-3,
+            want: Irrep::B3u,
+        },
     ];
     for (_i, test) in tests.iter().enumerate() {
         let mol = Molecule::from_str(test.mol).unwrap();
