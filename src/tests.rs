@@ -178,8 +178,8 @@ fn test_point_group() {
          H       0.8934572415   2.2429362063  -0.0000000000
 ",
             pg: C2v {
-                axis: Y,
-                planes: [Plane(Y, Z), Plane(X, Y)],
+                axis: X,
+                planes: [Plane(X, Z), Plane(X, Y)],
             },
         },
         Test {
@@ -472,10 +472,8 @@ fn test_inertia_tensor() {
     )
     .unwrap();
     let com = mol.com();
-    for atom in mol.atoms.iter_mut() {
-        *atom += com;
-    }
-    let got = mol.inertia_tensor();
+    mol.translate(-com);
+    let got = mol.moi();
     let want = Mat3::from_row_slice(&[
         1.7743928167251328,
         0.0,

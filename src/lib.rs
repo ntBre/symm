@@ -351,7 +351,7 @@ impl Molecule {
 
     /// compute the center of mass of `self`, assuming the most abundant isotope
     /// masses
-    fn com(&self) -> Vec3 {
+    pub fn com(&self) -> Vec3 {
         let mut sum = 0.0;
         let mut com = Vec3::zeros();
         for atom in &self.atoms {
@@ -363,7 +363,7 @@ impl Molecule {
     }
 
     /// compute the moment of inertia tensor
-    fn inertia_tensor(&self) -> Mat3 {
+    pub fn moi(&self) -> Mat3 {
         let mut ret = Mat3::zeros();
         for atom in &self.atoms {
             let Atom {
@@ -377,19 +377,35 @@ impl Molecule {
             ret[(1, 1)] += WEIGHTS[*i] * (x * x + z * z);
             ret[(2, 2)] += WEIGHTS[*i] * (x * x + y * y);
             // off-diagonal
-            ret[(1, 0)] += WEIGHTS[*i] * x * y;
-            ret[(2, 0)] += WEIGHTS[*i] * x * z;
-            ret[(2, 1)] += WEIGHTS[*i] * y * z;
+            ret[(1, 0)] -= WEIGHTS[*i] * x * y;
+            ret[(2, 0)] -= WEIGHTS[*i] * x * z;
+            ret[(2, 1)] -= WEIGHTS[*i] * y * z;
         }
         ret
     }
 
     /// eigenfactorize the moment of inertia tensor and return the principal
+    /// moments of inertia as a Vec3
+    pub fn principal_moments(&self) -> Vec3 {
+        let it = self.moi();
+        let sym = na::SymmetricEigen::new(it);
+        sym.eigenvalues
+    }
+
+    /// eigenfactorize the moment of inertia tensor and return the principal
     /// axes as a 3x3 matrix
-    fn moi(&self) -> Mat3 {
-        let it = self.inertia_tensor();
+    pub fn principal_axes(&self) -> Mat3 {
+        let it = self.moi();
         let sym = na::SymmetricEigen::new(it);
         sym.eigenvectors
+    }
+
+    /// translate each of the atoms in `self` by vec
+    pub fn translate(&mut self, vec: Vec3) -> &mut Self {
+        for atom in self.atoms.iter_mut() {
+            *atom += vec;
+        }
+        self
     }
 
     /// normalize `self` by translating to the center of mass and orienting the
@@ -397,38 +413,24 @@ impl Molecule {
     /// axes. adapted from SPECTRO
     pub fn normalize(&mut self) -> &mut Self {
         let com = self.com();
-        // translate to the center of mass
-        for atom in self.atoms.iter_mut() {
-            *atom += com;
-        }
-        let moi = self.moi();
-        *self = self.transform(moi);
+        self.translate(-com);
+        let axes = self.principal_axes();
+        *self = self.transform(axes.transpose());
         self
     }
 
-    /// reorder the axes of `self` such that the z-axis has the most mass along
-    /// it
+    /// reorder the axes of `self` such that the x direction corresponds to the
+    /// smallest moment of inertia and z to the largest
     pub fn reorder(&mut self) -> &mut Self {
-        let mut sum = [(0, 0.0), (1, 0.0), (2, 0.0)];
-        for atom in &self.atoms {
-            sum[0].1 += atom.weight() * atom.x.abs();
-            sum[1].1 += atom.weight() * atom.y.abs();
-            sum[2].1 += atom.weight() * atom.z.abs();
+        let vecs = self.principal_axes();
+        let vals = self.principal_moments();
+        let mut pairs: Vec<_> = vals.iter().enumerate().collect();
+        pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
+        let mut mat = Mat3::zeros();
+        for i in 0..3 {
+            mat.set_column(i, &vecs.column(pairs[i].0));
         }
-        // reverse sort by float part
-        sum.sort_by(|f, g| g.1.partial_cmp(&f.1).unwrap());
-        let (a, b, c) = (sum[0].0, sum[1].0, sum[2].0);
-        let mut new_atoms = Vec::new();
-        for atom in &self.atoms {
-            let coord = atom.coord();
-            new_atoms.push(Atom {
-                atomic_number: atom.atomic_number,
-                x: coord[c],
-                y: coord[b],
-                z: coord[a],
-            });
-        }
-        *self = Self { atoms: new_atoms };
+        *self = self.transform(mat.transpose());
         self
     }
 
