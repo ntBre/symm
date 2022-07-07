@@ -518,7 +518,7 @@ impl Molecule {
 
     /// apply the transformation matrix `mat` to the atoms in `self` and return
     /// the new Molecule
-    fn transform(&self, mat: na::Matrix3<f64>) -> Self {
+    pub fn transform(&self, mat: na::Matrix3<f64>) -> Self {
         let mut ret = Self::default();
         for (i, atom) in self.to_vecs().iter().enumerate() {
             let v = mat * atom;
