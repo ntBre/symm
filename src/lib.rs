@@ -428,8 +428,9 @@ impl Molecule {
     }
 
     /// reorder the axes of `self` such that the x direction corresponds to the
-    /// smallest moment of inertia and z to the largest
-    pub fn reorder(&mut self) -> &mut Self {
+    /// smallest moment of inertia and z to the largest. returns the matrix used
+    /// to make the transformation
+    pub fn reorder(&mut self) -> Mat3 {
         let vecs = self.principal_axes();
         let vals = self.principal_moments();
         let mut pairs: Vec<_> = vals.iter().enumerate().collect();
@@ -438,8 +439,9 @@ impl Molecule {
         for i in 0..3 {
             mat.set_column(i, &vecs.column(pairs[i].0));
         }
-        *self = self.transform(mat.transpose());
-        self
+        let mt = mat.transpose();
+        *self = self.transform(mt);
+        mt
     }
 
     pub fn point_group(&self) -> PointGroup {
