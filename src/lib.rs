@@ -313,6 +313,14 @@ impl Molecule {
         self.atoms.iter().map(|a| a.atomic_number).collect()
     }
 
+    /// return the atomic numbers of each atoms as a vector
+    pub fn weights(&self) -> Vec<f64> {
+        self.atoms
+            .iter()
+            .map(|a| WEIGHTS[a.atomic_number])
+            .collect()
+    }
+
     /// convert the coordinates in `self` from Angstroms to Bohr
     pub fn to_bohr(&mut self) {
         for atom in self.atoms.iter_mut() {
