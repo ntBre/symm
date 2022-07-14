@@ -1,6 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum Irrep {
     // C1
     A,
