@@ -89,7 +89,7 @@ impl Display for Plane {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PointGroup {
     C1,
     C2 { axis: Axis },
