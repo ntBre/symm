@@ -479,19 +479,41 @@ impl Molecule {
             axes
         };
 
-        let planes = if planes.len() > 1 {
-            // the order of planes is
-            // 1. Plane(highest axis, third-highest axis)
-            // 2. Plane(highest axis, second-highest axis)
-            // 3. Plane(second-highest, third-highest)
-            [
-                Plane::new(axis_sum[0].0, axis_sum[2].0),
-                Plane::new(axis_sum[0].0, axis_sum[1].0),
-                Plane::new(axis_sum[1].0, axis_sum[2].0),
-            ][..planes.len()]
-                .to_vec()
-        } else {
-            planes
+        // if there is only one axis, you can't blindly take the highest mass
+        // axis because it might not be an actual symmetry element... this only
+        // works for high-symmetry groups like D2h with multiple axes AND
+        // multiple planes. it doesn't work for a simple C2v molecule like
+        // allyl+. this might still be wrong for even more specific cases, but
+        // it works better than before
+        let planes = match planes.len() {
+            0 | 1 => planes,
+            2 | 3 => {
+                if axes.len() > 1 {
+                    // the order of planes is
+                    // 1. Plane(highest axis, third-highest axis)
+                    // 2. Plane(highest axis, second-highest axis)
+                    // 3. Plane(second-highest, third-highest)
+                    [
+                        Plane::new(axis_sum[0].0, axis_sum[2].0),
+                        Plane::new(axis_sum[0].0, axis_sum[1].0),
+                        Plane::new(axis_sum[1].0, axis_sum[2].0),
+                    ][..planes.len()]
+                        .to_vec()
+                } else {
+                    let ax = axes.get(0).expect(
+                        "expecting at least 1 axis for more than 1 plane",
+                    );
+                    let mut not_it = vec![];
+                    for s in axis_sum {
+                        if !axes.contains(&s.0) {
+                            not_it.push(s.0);
+                        }
+                    }
+                    // want the two axes that aren't ax, sorted by their mass in axis_sum
+                    vec![Plane::new(*ax, not_it[1]), Plane::new(*ax, not_it[0])]
+                }
+            }
+            _ => panic!("impossible number of symmetry planes"),
         };
         match (axes.len(), planes.len()) {
             (0, 1) => Cs { plane: planes[0] },
