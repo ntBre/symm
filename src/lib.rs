@@ -416,12 +416,9 @@ impl Molecule {
         self
     }
 
-    /// normalize `self` by translating to the center of mass and orienting the
-    /// molecule such that the rotational axes are aligned with the Cartesian
-    /// axes. adapted from SPECTRO
+    /// normalize `self` by orienting the molecule such that the rotational axes
+    /// are aligned with the Cartesian axes. adapted from SPECTRO
     pub fn normalize(&mut self) -> &mut Self {
-        let com = self.com();
-        self.translate(-com);
         let axes = self.principal_axes();
         *self = self.transform(axes.transpose());
         self
