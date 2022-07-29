@@ -139,7 +139,6 @@ fn test_point_group() {
         msg: &'a str,
         mol: &'a str,
         pg: PointGroup,
-        eps: f64,
     }
 
     let tests = vec![
@@ -154,7 +153,6 @@ fn test_point_group() {
                 axis: Y,
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
-            eps: 1e-8,
         },
         Test {
             msg: "c3h2",
@@ -169,7 +167,6 @@ fn test_point_group() {
                 axis: Y,
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
-            eps: 1e-8,
         },
         Test {
             msg: "c3h2 2",
@@ -184,7 +181,6 @@ fn test_point_group() {
                 axis: X,
                 planes: [Plane(X, Z), Plane(X, Y)],
             },
-            eps: 1e-8,
         },
         Test {
             msg: "ethylene",
@@ -199,7 +195,6 @@ fn test_point_group() {
                 axes: vec![X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
-            eps: 1e-8,
         },
         Test {
             msg: "si2c2",
@@ -213,7 +208,6 @@ fn test_point_group() {
                 axes: vec![X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
-            eps: 1e-8,
         },
         Test {
             msg: "ethylene again",
@@ -229,7 +223,6 @@ fn test_point_group() {
                 axes: vec![X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
-            eps: 1e-8,
         },
         Test {
             msg: "c3h3+",
@@ -245,14 +238,13 @@ fn test_point_group() {
                 axis: X,
                 planes: [Plane(X, Z), Plane(X, Y)],
             },
-            eps: 1e-5,
         },
     ];
     for test in tests {
         let mut mol = Molecule::from_str(test.mol).unwrap();
         mol.normalize();
         mol.reorder();
-        let got = mol.point_group_approx(test.eps);
+        let got = mol.point_group_approx(1e-5);
         if got != test.pg {
             assert_eq!(got, test.pg, "wrong point group on {}", test.msg);
         }
