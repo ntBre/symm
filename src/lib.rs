@@ -21,7 +21,7 @@ type Mat3 = na::Matrix3<f64>;
 pub const ANGBOHR: f64 = 0.5291_772_109;
 
 /// atomic weights from https://physics.nist.gov
-const WEIGHTS: [f64; 15] = [
+const WEIGHTS: [f64; 19] = [
     0.0,
     1.007_825_032,
     3.016_029_320,
@@ -33,10 +33,16 @@ const WEIGHTS: [f64; 15] = [
     15.994_914_619_57,
     18.998_403_162_73,
     19.992_440_1762,
+    // sodium
     22.989_769_2820,
     23.985_041_697,
     26.981_538_53,
     27.976_926_534_65,
+    30.973761998,
+    31.972071174,
+    34.968852682,
+    39.9623831237,
+    // potassium
 ];
 
 // TODO expand beyond cartesian axes. an alternative formulation of this is to
