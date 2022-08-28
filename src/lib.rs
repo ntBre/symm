@@ -425,12 +425,13 @@ impl Molecule {
     /// normalize `self` by translating to the center of mass and orienting the
     /// molecule such that the rotational axes are aligned with the Cartesian
     /// axes. adapted from SPECTRO
-    pub fn normalize(&mut self) -> &mut Self {
+    pub fn normalize(&mut self) -> (Vec3, Mat3) {
         let com = self.com();
         self.translate(-com);
+        let vals = self.principal_moments();
         let axes = self.principal_axes();
         *self = self.transform(axes.transpose());
-        self
+        (vals, axes)
     }
 
     /// reorder the axes of `self` such that the x direction corresponds to the
@@ -439,12 +440,7 @@ impl Molecule {
     pub fn reorder(&mut self) -> Mat3 {
         let vecs = self.principal_axes();
         let vals = self.principal_moments();
-        let mut pairs: Vec<_> = vals.iter().enumerate().collect();
-        pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
-        let mut mat = Mat3::zeros();
-        for i in 0..3 {
-            mat.set_column(i, &vecs.column(pairs[i].0));
-        }
+        let (_, mat) = eigen_sort(vals, vecs);
         let mt = mat.transpose();
         *self = self.transform(mt);
         mt
@@ -809,6 +805,35 @@ impl Molecule {
     pub fn irrep(&self, pg: &PointGroup) -> Irrep {
         self.irrep_approx(pg, 1e-8).unwrap()
     }
+}
+
+/// sort the eigenvalues and eigenvectors in decreasing order by eigenvalue
+pub fn eigen_sort_dec(
+    vals: Vec3,
+    vecs: Mat3,
+) -> (Vec3, Mat3) {
+    let mut pairs: Vec<_> = vals.iter().enumerate().collect();
+    pairs.sort_by(|(_, a), (_, b)| b.partial_cmp(&a).unwrap());
+    let vec = Vec3::from_iterator(pairs.iter().map(|i| i.1.clone()));
+    let mut mat = Mat3::zeros();
+    for i in 0..3 {
+        mat.set_column(i, &vecs.column(pairs[i].0));
+    }
+    (vec, mat)
+}
+
+pub fn eigen_sort(
+    vals: Vec3,
+    vecs: Mat3,
+) -> (Vec3, Mat3) {
+    let mut pairs: Vec<_> = vals.iter().enumerate().collect();
+    pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
+    let vec = Vec3::from_iterator(pairs.iter().map(|i| i.1.clone()));
+    let mut mat = Mat3::zeros();
+    for i in 0..3 {
+        mat.set_column(i, &vecs.column(pairs[i].0));
+    }
+    (vec, mat)
 }
 
 #[derive(Debug, Default, PartialEq)]
