@@ -424,26 +424,18 @@ impl Molecule {
 
     /// normalize `self` by translating to the center of mass and orienting the
     /// molecule such that the rotational axes are aligned with the Cartesian
-    /// axes. adapted from SPECTRO
+    /// axes. additionally, sort the axes such that x corresponds to the
+    /// smallest moment of inertia and z to the largest. returns the vector of
+    /// principal moments of inertia and the principal axes used to make the
+    /// transformation. adapted from SPECTRO
     pub fn normalize(&mut self) -> (Vec3, Mat3) {
         let com = self.com();
         self.translate(-com);
-        let vals = self.principal_moments();
+        let pr = self.principal_moments();
         let axes = self.principal_axes();
+        let (pr, axes) = eigen_sort(pr, axes);
         *self = self.transform(axes.transpose());
-        (vals, axes)
-    }
-
-    /// reorder the axes of `self` such that the x direction corresponds to the
-    /// smallest moment of inertia and z to the largest. returns the matrix used
-    /// to make the transformation
-    pub fn reorder(&mut self) -> Mat3 {
-        let vecs = self.principal_axes();
-        let vals = self.principal_moments();
-        let (_, mat) = eigen_sort(vals, vecs);
-        let mt = mat.transpose();
-        *self = self.transform(mt);
-        mt
+        (pr, axes)
     }
 
     pub fn point_group(&self) -> PointGroup {
