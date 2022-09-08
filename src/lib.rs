@@ -396,13 +396,13 @@ impl Molecule {
     /// contains the indices in `self` that correspond to atoms in `other`.
     /// `eps` is used in the `Atom` `AbsDiffEq` call to check the equality of
     /// two atoms.
-    pub fn detect_buddies(&self, other: &Self, eps: f64) -> Vec<usize> {
+    pub fn detect_buddies(&self, other: &Self, eps: f64) -> Vec<Option<usize>> {
         assert_eq!(self.atoms.len(), other.atoms.len());
-        let mut ret = vec![0; self.atoms.len()];
+        let mut ret = vec![None; self.atoms.len()];
         for (i, atom) in self.atoms.iter().enumerate() {
             for (j, btom) in other.atoms.iter().enumerate() {
                 if atom.abs_diff_eq(btom, eps) {
-                    ret[i] = j;
+                    ret[i] = Some(j);
                     break;
                 }
             }
