@@ -1,5 +1,8 @@
 use std::{
-    collections::HashMap, fmt::Display, ops::Add, str::FromStr,
+    collections::HashMap,
+    fmt::Display,
+    ops::{Add, BitXor},
+    str::FromStr,
     string::ParseError,
 };
 
@@ -52,9 +55,9 @@ const WEIGHTS: [f64; 19] = [
 // restrict these to the cartesian axes for now
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Axis {
-    X,
-    Y,
-    Z,
+    X = 0,
+    Y = 1,
+    Z = 2,
 }
 
 impl Display for Axis {
@@ -71,6 +74,33 @@ impl Display for Axis {
     }
 }
 
+impl BitXor<Axis> for Plane {
+    type Output = Axis;
+
+    fn bitxor(self, rhs: Axis) -> Self::Output {
+        let Plane(ax, bx) = self;
+        use Axis::*;
+        match (ax, bx) {
+            (X, Y) | (Y, X) => match rhs {
+                X => Y,
+                Y => X,
+                Z => panic!("Z not in XY"),
+            },
+            (X, Z) | (Z, X) => match rhs {
+                X => Z,
+                Y => panic!("Y not in XZ"),
+                Z => X,
+            },
+            (Y, Z) | (Z, Y) => match rhs {
+                X => panic!("X not in YZ"),
+                Y => Z,
+                Z => Y,
+            },
+            _ => panic!("impossible Axis combination for Plane"),
+        }
+    }
+}
+
 // restrict these to combinations of cartesian axes for now. a more general
 // plane is described by (a, b, c) in the equation ax + by + cz = 0
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -84,6 +114,18 @@ impl Plane {
             (X, Y) | (Y, X) => Plane(X, Y),
             (X, Z) | (Z, X) => Plane(X, Z),
             (Y, Z) | (Z, Y) => Plane(Y, Z),
+            _ => panic!("impossible Axis combination for Plane"),
+        }
+    }
+
+    /// return the axis perpendicular to `self`
+    pub fn perp(&self) -> Axis {
+        let Plane(ax, bx) = self;
+        use Axis::*;
+        match (ax, bx) {
+            (X, Y) | (Y, X) => Z,
+            (X, Z) | (Z, X) => Y,
+            (Y, Z) | (Z, Y) => X,
             _ => panic!("impossible Axis combination for Plane"),
         }
     }
