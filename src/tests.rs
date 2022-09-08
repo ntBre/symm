@@ -150,8 +150,8 @@ fn test_point_group() {
   H           0.000000000   -1.431390207    0.986041184
 ",
             pg: C2v {
-                axis: Z,
-                planes: [Plane(X, Z), Plane(Y, Z)],
+                axis: Y,
+                planes: [Plane(Y, Z), Plane(X, Y)],
             },
         },
         Test {
@@ -178,8 +178,8 @@ fn test_point_group() {
          H       0.8934572415   2.2429362063  -0.0000000000
 ",
             pg: C2v {
-                axis: X,
-                planes: [Plane(X, Z), Plane(X, Y)],
+                axis: Y,
+                planes: [Plane(Y, Z), Plane(X, Y)],
             },
         },
         Test {
@@ -192,8 +192,8 @@ H      0.00000000  0.90205573  1.26058509
 H     -0.00000000 -0.90205573  1.26058509
 ",
             pg: D2h {
-                axes: vec![Z, Y, X],
-                planes: [Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
+                axes: vec![X, Y, Z],
+                planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
         },
         Test {
@@ -205,8 +205,8 @@ H     -0.00000000 -0.90205573  1.26058509
  C          0.0000000000        0.7271526187        0.0000000000
 ",
             pg: D2h {
-                axes: vec![Z, Y, X],
-                planes: [Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
+                axes: vec![X, Y, Z],
+                planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
         },
         Test {
@@ -220,8 +220,8 @@ H         -0.000000000000      0.902057584085      1.260565245600
 H          0.000000000000     -0.902057584056      1.260565246420
 ",
             pg: D2h {
-                axes: vec![Z, Y, X],
-                planes: [Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
+                axes: vec![X, Y, Z],
+                planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
         },
     ];
