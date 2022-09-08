@@ -101,6 +101,7 @@ pub enum PointGroup {
     C2 { axis: Axis },
     Cs { plane: Plane },
     C2v { axis: Axis, planes: [Plane; 2] },
+    C3v { axis: Axis, plane: Plane },
     D2h { axes: Vec<Axis>, planes: [Plane; 3] },
 }
 
@@ -114,6 +115,9 @@ impl Display for PointGroup {
                 axis: a,
                 planes: ps,
             } => write!(f, "C2v({}, {}, {})", a, ps[0], ps[1]),
+            PointGroup::C3v { axis: a, plane } => {
+                write!(f, "C3v({}, {})", a, plane)
+            }
             PointGroup::D2h { axes, planes } => {
                 write!(
                     f,
@@ -264,8 +268,9 @@ impl Add<Vec<f64>> for Molecule {
 
 impl Display for Molecule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let width = f.width().unwrap_or(12);
         let precision = f.precision().unwrap_or(8);
+        let width = f.width().unwrap_or(precision + 4);
+        writeln!(f)?;
         for atom in &self.atoms {
             writeln!(
                 f,
@@ -448,7 +453,13 @@ impl Molecule {
         let mut axes = Vec::new();
         let mut planes = Vec::new();
         for ax in vec![X, Y, Z] {
+            // check for C2 axis
             if self.rotate(180.0, &ax).abs_diff_eq(self, eps) {
+                axes.push(ax);
+            }
+            // check for C3 axis
+            let got = self.rotate(120.0, &ax);
+            if got.abs_diff_eq(self, eps) {
                 axes.push(ax);
             }
         }
@@ -512,6 +523,12 @@ impl Molecule {
         match (axes.len(), planes.len()) {
             (0, 1) => Cs { plane: planes[0] },
             (1, 0) => C2 { axis: axes[0] },
+            // NOTE should probably check the other two planes here, but I'd
+            // have to rework the planes a bit
+            (1, 1) => C3v {
+                axis: axes[0],
+                plane: planes[0],
+            },
             (1, 2) => C2v {
                 axis: axes[0],
                 planes: [planes[0], planes[1]],
@@ -789,6 +806,7 @@ impl Molecule {
                     ))),
                 }
             }
+            C3v { axis: _, plane: _ } => todo!(),
         }
     }
 
@@ -800,10 +818,7 @@ impl Molecule {
 }
 
 /// sort the eigenvalues and eigenvectors in decreasing order by eigenvalue
-pub fn eigen_sort_dec(
-    vals: Vec3,
-    vecs: Mat3,
-) -> (Vec3, Mat3) {
+pub fn eigen_sort_dec(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
     let mut pairs: Vec<_> = vals.iter().enumerate().collect();
     pairs.sort_by(|(_, a), (_, b)| b.partial_cmp(&a).unwrap());
     let vec = Vec3::from_iterator(pairs.iter().map(|i| i.1.clone()));
@@ -814,10 +829,7 @@ pub fn eigen_sort_dec(
     (vec, mat)
 }
 
-pub fn eigen_sort(
-    vals: Vec3,
-    vecs: Mat3,
-) -> (Vec3, Mat3) {
+pub fn eigen_sort(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
     let mut pairs: Vec<_> = vals.iter().enumerate().collect();
     pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
     let vec = Vec3::from_iterator(pairs.iter().map(|i| i.1.clone()));

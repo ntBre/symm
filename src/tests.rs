@@ -139,6 +139,7 @@ fn test_point_group() {
         msg: &'a str,
         mol: &'a str,
         pg: PointGroup,
+        eps: f64,
     }
 
     let tests = vec![
@@ -153,6 +154,7 @@ fn test_point_group() {
                 axis: Y,
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
+            eps: 1e-8,
         },
         Test {
             msg: "c3h2",
@@ -167,6 +169,7 @@ fn test_point_group() {
                 axis: Y,
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
+            eps: 1e-8,
         },
         Test {
             msg: "c3h2 2",
@@ -181,6 +184,7 @@ fn test_point_group() {
                 axis: Y,
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
+            eps: 1e-8,
         },
         Test {
             msg: "ethylene",
@@ -195,6 +199,7 @@ H     -0.00000000 -0.90205573  1.26058509
                 axes: vec![X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
+            eps: 1e-8,
         },
         Test {
             msg: "si2c2",
@@ -208,6 +213,7 @@ H     -0.00000000 -0.90205573  1.26058509
                 axes: vec![X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
+            eps: 1e-8,
         },
         Test {
             msg: "ethylene again",
@@ -223,18 +229,31 @@ H          0.000000000000     -0.902057584056      1.260565246420
                 axes: vec![X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
+            eps: 1e-8,
+        },
+        Test {
+            msg: "nh3",
+            mol: "
+H      0.93666628  0.31241085 -0.00000000
+N      0.00001501 -0.06815209 -0.00000000
+H     -0.46828832  0.31246590  0.81115089
+H     -0.46828832  0.31246590 -0.81115089
+",
+            pg: C3v {
+                axis: Z,
+                // TODO two of the planes will not be aligned with Cartesian
+                // planes
+                plane: Plane(X, Z),
+            },
+            eps: 1e-6,
         },
     ];
-    for test in tests {
+    for test in &tests[..] {
         let mut mol = Molecule::from_str(test.mol).unwrap();
         mol.normalize();
-        if mol.point_group() != test.pg {
-            assert_eq!(
-                mol.point_group(),
-                test.pg,
-                "wrong point group on {}",
-                test.msg
-            );
+        let pg = mol.point_group_approx(test.eps);
+        if pg != test.pg {
+            assert_eq!(pg, test.pg, "wrong point group on {}", test.msg);
         }
     }
 }
