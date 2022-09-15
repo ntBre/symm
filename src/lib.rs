@@ -877,6 +877,7 @@ pub fn eigen_sort_dec(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
     (vec, mat)
 }
 
+/// sort the eigenvalues and eigenvectors in ascending order by eigenvalue
 pub fn eigen_sort(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
     let mut pairs: Vec<_> = vals.iter().enumerate().collect();
     pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
