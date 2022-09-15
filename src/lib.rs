@@ -171,9 +171,15 @@ impl Display for PointGroup {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Molecule {
     pub atoms: Vec<Atom>,
+}
+
+impl std::fmt::Debug for Molecule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
 }
 
 /// A Molecule is AbsDiffEq if each of its Atoms is
