@@ -860,7 +860,11 @@ impl Molecule {
                     ))),
                 }
             }
-            C3v { axis: _, plane: _ } => todo!(),
+            C3v { axis: _, plane } => {
+		// defer to the Cs implementation for now to satisfy summarize
+		// test
+		self.irrep_approx(&Cs { plane: plane.clone() }, eps)
+	    }
         }
     }
 

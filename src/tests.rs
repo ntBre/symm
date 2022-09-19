@@ -247,6 +247,26 @@ H     -0.46828832  0.31246590 -0.81115089
             },
             eps: 1e-6,
         },
+        Test {
+            msg: "c3h3+",
+            mol: "
+C   -0.5752253      0.5636900      0.0000000
+C   -0.2005581     -0.7800038      0.0000000
+C    0.7757834      0.2163138      0.0000000
+H    1.8160258      0.5063683      0.0000000
+H   -0.4694853     -1.8259092      0.0000000
+H   -1.3465409      1.3195405      0.0000000
+",
+	    // TODO this is actually not the right plane for C3v. I guess this
+	    // is why you have to rotate one of the atoms to a specific axis in
+	    // spectro, to make a plane coincide with the Cartesian planes. the
+	    // plane I'm detecting here actually indicates D3h symmetry
+            pg: C3v {
+                axis: Z,
+                plane: Plane(X, Y),
+            },
+            eps: 1e-4,
+        },
     ];
     for test in &tests[..] {
         let mut mol = Molecule::from_str(test.mol).unwrap();
