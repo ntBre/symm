@@ -422,6 +422,19 @@ impl Molecule {
         ret
     }
 
+    /// calls [detect_buddies] and then unwraps each element of the resulting
+    /// Vec, panicking if any of them is `None`
+    pub fn detect_buddies_unchecked(
+        &self,
+        other: &Self,
+        eps: f64,
+    ) -> Vec<usize> {
+        self.detect_buddies(other, eps)
+            .iter()
+            .map(|b| b.unwrap())
+            .collect()
+    }
+
     /// compute the center of mass of `self`, assuming the most abundant isotope
     /// masses
     pub fn com(&self) -> Vec3 {
@@ -861,10 +874,15 @@ impl Molecule {
                 }
             }
             C3v { axis: _, plane } => {
-		// defer to the Cs implementation for now to satisfy summarize
-		// test
-		self.irrep_approx(&Cs { plane: plane.clone() }, eps)
-	    }
+                // defer to the Cs implementation for now to satisfy summarize
+                // test
+                self.irrep_approx(
+                    &Cs {
+                        plane: plane.clone(),
+                    },
+                    eps,
+                )
+            }
         }
     }
 
