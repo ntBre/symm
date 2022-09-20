@@ -2,15 +2,15 @@ use crate::Axis::*;
 use crate::PointGroup::*;
 use crate::*;
 
+struct Test<'a> {
+    msg: &'a str,
+    mol: &'a str,
+    pg: PointGroup,
+    eps: f64,
+}
+
 #[test]
 fn point_group() {
-    struct Test<'a> {
-        msg: &'a str,
-        mol: &'a str,
-        pg: PointGroup,
-        eps: f64,
-    }
-
     let tests = vec![
         Test {
             msg: "water",
@@ -136,13 +136,37 @@ H   -1.3465409      1.3195405      0.0000000
             },
             eps: 1e-4,
         },
+        // this is the pre-normalization geometry in my spectro implementation
+        Test {
+            msg: "bipy",
+            mol: "
+C      1.04734775  0.00000000  0.00000000
+C      0.00000000  1.04962758  0.00000000
+C      0.00000000 -0.52481379 -0.90900415
+C      0.00000000 -0.52481379  0.90900415
+C     -1.04734775  0.00000000  0.00000000
+H      2.11983822  0.00000000  0.00000000
+H     -2.11983822  0.00000000  0.00000000
+",
+            pg: C3v {
+                axis: X,
+                plane: Plane(X, Z),
+            },
+            eps: 1e-6,
+        },
     ];
+    let mut i = 0;
     for test in &tests[..] {
         let mut mol = Molecule::from_str(test.mol).unwrap();
         mol.normalize();
         let pg = mol.point_group_approx(test.eps);
         if pg != test.pg {
-            assert_eq!(pg, test.pg, "wrong point group on {}", test.msg);
+            assert_eq!(
+                pg, test.pg,
+                "wrong point group on test {i}: {}",
+                test.msg
+            );
         }
+        i += 1;
     }
 }

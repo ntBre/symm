@@ -59,10 +59,11 @@ const WEIGHTS: [f64; 28] = [
 // rotations pretty much assume you are along the cartesian axes
 
 // restrict these to the cartesian axes for now
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone)]
 pub enum Axis {
     X = 0,
     Y = 1,
+    #[default]
     Z = 2,
 }
 
@@ -598,11 +599,21 @@ impl Molecule {
             (0, 1) => Cs { plane: planes[0] },
             (1, 0) => C2 { axis: axes[0] },
             // NOTE should probably check the other two planes here, but I'd
-            // have to rework the planes a bit
-            (1, 1) => C3v {
-                axis: axes[0],
-                plane: planes[0],
-            },
+            // have to rework the planes a bit. also see the note about the
+            // wrong point group for c3h3+ in the tests. to handle this properly
+            // I'm probably going to have to do a lot of changing
+            (1, 1) | (2, 2) => {
+                let axis = axes[0];
+                // this is just a heuristic so far, but for my test cases the
+                // actual σᵥ plane is the second one and σₕ is the first. it's
+                // unclear that this will always be the case
+                let plane = if planes.len() > 1 {
+                    planes[1]
+                } else {
+                    planes[0]
+                };
+                C3v { axis, plane }
+            }
             (1, 2) => C2v {
                 axis: axes[0],
                 planes: [planes[0], planes[1]],
