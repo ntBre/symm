@@ -422,17 +422,24 @@ impl Molecule {
         ret
     }
 
-    /// calls [detect_buddies] and then unwraps each element of the resulting
-    /// Vec, panicking if any of them is `None`
-    pub fn detect_buddies_unchecked(
+    /// calls [detect_buddies] and then returns Some of the unwrapped Vec if all
+    /// of the elements are initialized and None if any of them is None
+    pub fn try_detect_buddies(
         &self,
         other: &Self,
         eps: f64,
-    ) -> Vec<usize> {
-        self.detect_buddies(other, eps)
+    ) -> Option<Vec<usize>> {
+        let tmp: Vec<_> = self
+            .detect_buddies(other, eps)
             .iter()
-            .map(|b| b.unwrap())
-            .collect()
+            .cloned()
+            .flatten()
+            .collect();
+        if tmp.len() == other.atoms.len() {
+            Some(tmp)
+        } else {
+            None
+        }
     }
 
     /// compute the center of mass of `self`, assuming the most abundant isotope
