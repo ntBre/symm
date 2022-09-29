@@ -1,8 +1,10 @@
 use std::{fmt::Display, str::FromStr};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+#[derive(
+    Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Serialize,
+)]
 pub enum Irrep {
     // C1
     A,
