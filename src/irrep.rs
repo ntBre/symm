@@ -31,27 +31,24 @@ pub enum Irrep {
 
 impl Display for Irrep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.pad(&format!(
-            "{}",
-            match self {
-                Irrep::A => "A",
-                Irrep::B => "B",
-                Irrep::Ap => "A'",
-                Irrep::App => "A''",
-                Irrep::A1 => "A1",
-                Irrep::B1 => "B1",
-                Irrep::B2 => "B2",
-                Irrep::A2 => "A2",
-                Irrep::Ag => "Ag",
-                Irrep::B1g => "B1g",
-                Irrep::B2g => "B2g",
-                Irrep::B3g => "B3g",
-                Irrep::Au => "Au",
-                Irrep::B1u => "B1u",
-                Irrep::B2u => "B2u",
-                Irrep::B3u => "B3u",
-            }
-        ))
+        f.pad(match self {
+            Irrep::A => "A",
+            Irrep::B => "B",
+            Irrep::Ap => "A'",
+            Irrep::App => "A''",
+            Irrep::A1 => "A1",
+            Irrep::B1 => "B1",
+            Irrep::B2 => "B2",
+            Irrep::A2 => "A2",
+            Irrep::Ag => "Ag",
+            Irrep::B1g => "B1g",
+            Irrep::B2g => "B2g",
+            Irrep::B3g => "B3g",
+            Irrep::Au => "Au",
+            Irrep::B1u => "B1u",
+            Irrep::B2u => "B2u",
+            Irrep::B3u => "B3u",
+        })
     }
 }
 

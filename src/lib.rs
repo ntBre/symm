@@ -144,7 +144,7 @@ impl Display for Plane {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PointGroup {
     C1,
     C2 { axis: Axis },
@@ -178,7 +178,7 @@ impl Display for PointGroup {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Molecule {
     pub atoms: Vec<Atom>,
 }
@@ -302,7 +302,7 @@ impl Add<Vec<f64>> for Molecule {
     type Output = Self;
 
     /// panics if the size of `rhs` doesn't align with the size of `self.atoms`
-    fn add(self, rhs: Vec<f64>) -> Self::Output {
+    fn add(mut self, rhs: Vec<f64>) -> Self::Output {
         if 3 * self.atoms.len() != rhs.len() {
             panic!(
                 "{} atoms but {} displacements",
@@ -310,14 +310,13 @@ impl Add<Vec<f64>> for Molecule {
                 rhs.len()
             );
         }
-        let mut ret = self.clone();
         // panic above ensures rhs is exactly divisble by 3
         for (i, chunk) in rhs.chunks_exact(3).enumerate() {
-            ret.atoms[i].x += chunk[0];
-            ret.atoms[i].y += chunk[1];
-            ret.atoms[i].z += chunk[2];
+            self.atoms[i].x += chunk[0];
+            self.atoms[i].y += chunk[1];
+            self.atoms[i].z += chunk[2];
         }
-        ret
+        self
     }
 }
 
@@ -339,14 +338,6 @@ impl Display for Molecule {
             )?;
         }
         Ok(())
-    }
-}
-
-impl Default for Molecule {
-    fn default() -> Self {
-        Self {
-            atoms: Default::default(),
-        }
     }
 }
 
@@ -527,7 +518,7 @@ impl Molecule {
         use PointGroup::*;
         let mut axes = Vec::new();
         let mut planes = Vec::new();
-        for ax in vec![X, Y, Z] {
+        for ax in [X, Y, Z] {
             // check for C2 axis
             if self.rotate(180.0, &ax).abs_diff_eq(self, eps) {
                 axes.push(ax);
@@ -538,7 +529,7 @@ impl Molecule {
                 axes.push(ax);
             }
         }
-        for plane in vec![Plane(X, Y), Plane(X, Z), Plane(Y, Z)] {
+        for plane in [Plane(X, Y), Plane(X, Z), Plane(Y, Z)] {
             if self.reflect(&plane).abs_diff_eq(self, eps) {
                 planes.push(plane);
             }
@@ -727,10 +718,10 @@ impl Molecule {
         match pg {
             C1 => Ok(A),
             C2 { axis } => {
-                let new = self.rotate(180.0, &axis);
+                let new = self.rotate(180.0, axis);
                 if new.abs_diff_eq(self, eps) {
                     Ok(A)
-                } else if new.rotate(180.0, &axis).abs_diff_eq(self, eps) {
+                } else if new.rotate(180.0, axis).abs_diff_eq(self, eps) {
                     Ok(B)
                 } else {
                     Err(SymmetryError::new(&format!(
@@ -740,10 +731,10 @@ impl Molecule {
                 }
             }
             Cs { plane } => {
-                let new = self.reflect(&plane);
+                let new = self.reflect(plane);
                 if new.abs_diff_eq(self, eps) {
                     Ok(Ap)
-                } else if new.reflect(&plane).abs_diff_eq(self, eps) {
+                } else if new.reflect(plane).abs_diff_eq(self, eps) {
                     Ok(App)
                 } else {
                     Err(SymmetryError::new(&format!(
@@ -762,10 +753,10 @@ impl Molecule {
                 // TODO would be nice to abstract these into some kind of apply
                 // function
                 chars.0 = {
-                    let new = self.rotate(180.0, &axis);
+                    let new = self.rotate(180.0, axis);
                     if new.abs_diff_eq(self, eps) {
                         1 // the same
-                    } else if new.rotate(180.0, &axis).abs_diff_eq(self, eps) {
+                    } else if new.rotate(180.0, axis).abs_diff_eq(self, eps) {
                         -1 // the opposite
                     } else {
                         0 // something else
@@ -891,15 +882,10 @@ impl Molecule {
                     ))),
                 }
             }
-            C3v { axis: _, plane } => {
+            &C3v { axis: _, plane } => {
                 // defer to the Cs implementation for now to satisfy summarize
                 // test
-                self.irrep_approx(
-                    &Cs {
-                        plane: plane.clone(),
-                    },
-                    eps,
-                )
+                self.irrep_approx(&Cs { plane }, eps)
             }
         }
     }
