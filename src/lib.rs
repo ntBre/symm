@@ -899,29 +899,32 @@ impl Molecule {
 
 /// sort the eigenvalues and eigenvectors in decreasing order by eigenvalue
 pub fn eigen_sort_dec(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
+    eigen_sort_inner(vals, vecs, true)
+}
+
+/// if `reverse` is `true`, sort the eigenvalues into decreasing order.
+/// otherwise sort them in ascending order
+fn eigen_sort_inner(vals: Vec3, vecs: Mat3, reverse: bool) -> (Vec3, Mat3) {
     let mut pairs: Vec<_> = vals.iter().enumerate().collect();
-    pairs.sort_by(|(_, a), (_, b)| b.partial_cmp(&a).unwrap());
-    let vec = Vec3::from_iterator(pairs.iter().map(|i| i.1.clone()));
+    if reverse {
+        pairs.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap());
+    } else {
+        pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+    }
+    let vec = Vec3::from_iterator(pairs.iter().map(|i| *i.1));
     let mut mat = Mat3::zeros();
-    for i in 0..3 {
-        mat.set_column(i, &vecs.column(pairs[i].0));
+    for (i, (p, _)) in pairs.iter().enumerate() {
+        mat.set_column(i, &vecs.column(*p));
     }
     (vec, mat)
 }
 
 /// sort the eigenvalues and eigenvectors in ascending order by eigenvalue
 pub fn eigen_sort(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
-    let mut pairs: Vec<_> = vals.iter().enumerate().collect();
-    pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(&b).unwrap());
-    let vec = Vec3::from_iterator(pairs.iter().map(|i| i.1.clone()));
-    let mut mat = Mat3::zeros();
-    for i in 0..3 {
-        mat.set_column(i, &vecs.column(pairs[i].0));
-    }
-    (vec, mat)
+    eigen_sort_inner(vals, vecs, false)
 }
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct SymmetryError {
     msg: String,
 }
