@@ -638,17 +638,17 @@ impl Molecule {
     /// apply the transformation matrix `mat` to the atoms in `self` and return
     /// the new Molecule
     pub fn transform(&self, mat: na::Matrix3<f64>) -> Self {
-        let mut ret = Self::default();
+        let mut ret = Vec::with_capacity(self.atoms.len());
         for (i, atom) in self.to_vecs().iter().enumerate() {
             let v = mat * atom;
-            ret.atoms.push(Atom::new(
+            ret.push(Atom::new(
                 self.atoms[i].atomic_number,
                 v[0],
                 v[1],
                 v[2],
             ));
         }
-        ret
+        Self::new(ret)
     }
 
     pub fn rotate(&self, deg: f64, axis: &Axis) -> Self {
