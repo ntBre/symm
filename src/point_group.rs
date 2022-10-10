@@ -6,11 +6,33 @@ use crate::Axis;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PointGroup {
     C1,
-    C2 { axis: Axis },
-    Cs { plane: Plane },
-    C2v { axis: Axis, planes: [Plane; 2] },
-    C3v { axis: Axis, plane: Plane },
-    D2h { axes: [Axis; 3], planes: [Plane; 3] },
+    C2 {
+        axis: Axis,
+    },
+    Cs {
+        plane: Plane,
+    },
+    C2v {
+        axis: Axis,
+        planes: [Plane; 2],
+    },
+    C3v {
+        axis: Axis,
+        plane: Plane,
+    },
+    D2h {
+        axes: [Axis; 3],
+        planes: [Plane; 3],
+    },
+
+    /// sh is σₕ – the plane perpendicular to the C₃ axis, while `sv` (σᵥ) is
+    /// the plane that includes the C₃ axis
+    D3h {
+        c3: Axis,
+        c2: Axis,
+        sh: Plane,
+        sv: Plane,
+    },
 }
 
 impl Display for PointGroup {
@@ -32,6 +54,9 @@ impl Display for PointGroup {
                     "D2h({}, {}, {}, {}, {}, {})",
                     axes[0], axes[1], axes[2], planes[0], planes[1], planes[2]
                 )
+            }
+            PointGroup::D3h { c3, c2, sh, sv } => {
+                write!(f, "D3h(C3({}), C2({}), {}, {})", c3, c2, sh, sv)
             }
         }
     }

@@ -138,6 +138,25 @@ H   -1.3465409      1.3195405      0.0000000
             },
             eps: 1e-4,
         },
+        // TODO this is already normalized, renormalizing messes it up
+        Test {
+            msg: "c3h3+ d3h",
+            mol: "
+        C     -0.00000736 -0.42615278  0.00000000
+        C     -0.36910790  0.21308387  0.00000000
+        C      0.36911526  0.21307113  0.00000000
+        H      0.86400511  0.49881127  0.00000000
+        H     -0.86398789  0.49884110  0.00000000
+        H     -0.00001723 -0.99767867  0.00000000
+        ",
+            pg: D3h {
+                c3: Z,
+                c2: Y,
+                sh: Plane(X, Y),
+                sv: Plane(Y, Z),
+            },
+            eps: 1e-3,
+        },
         // this is the pre-normalization geometry in my spectro implementation
         Test {
             msg: "bipy",
@@ -150,9 +169,11 @@ C     -1.04734775  0.00000000  0.00000000
 H      2.11983822  0.00000000  0.00000000
 H     -2.11983822  0.00000000  0.00000000
 ",
-            pg: C3v {
-                axis: X,
-                plane: Plane(X, Z),
+            pg: D3h {
+                c3: X,
+                c2: Z,
+                sh: Plane(Y, Z),
+                sv: Plane(X, Z),
             },
             eps: 1e-6,
         },
@@ -162,6 +183,7 @@ H     -2.11983822  0.00000000  0.00000000
         mol.normalize();
         let pg = mol.point_group_approx(test.eps);
         if pg != test.pg {
+            println!("mol={:.8}", mol);
             assert_eq!(
                 pg, test.pg,
                 "wrong point group on test {i}: {}",

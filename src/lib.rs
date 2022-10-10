@@ -17,7 +17,7 @@ mod weights;
 
 use nalgebra as na;
 
-use crate::plane::Plane;
+pub use crate::plane::Plane;
 
 type Vec3 = na::Vector3<f64>;
 type Mat3 = na::Matrix3<f64>;
@@ -231,6 +231,16 @@ impl Molecule {
         self.point_group_approx(1e-8)
     }
 
+    fn is_c2(&self, ax: Axis, eps: f64) -> bool {
+        let rot = self.rotate(180.0, &ax);
+        rot.abs_diff_eq(self, eps)
+    }
+
+    fn is_c3(&self, ax: Axis, eps: f64) -> bool {
+        let rot = self.rotate(120.0, &ax);
+        rot.abs_diff_eq(self, eps)
+    }
+
     pub fn point_group_approx(&self, eps: f64) -> point_group::PointGroup {
         use point_group::PointGroup::*;
         use Axis::*;
@@ -294,9 +304,13 @@ impl Molecule {
                         Plane::new(axis_sum[0].0, axis_sum[2].0),
                         Plane::new(axis_sum[0].0, axis_sum[1].0),
                         Plane::new(axis_sum[1].0, axis_sum[2].0),
-                    ][..planes.len()]
-                        .to_vec()
+                    ]
+                    .into_iter()
+                    .filter(|p| planes.contains(p))
+                    .collect()
                 } else {
+                    // TODO this is probably wrong too, not sure if I'm actually
+                    // looking at planes in `planes` like I wasn't above
                     let ax = axes.get(0).expect(
                         "expecting at least 1 axis for more than 1 plane",
                     );
@@ -306,7 +320,8 @@ impl Molecule {
                             not_it.push(s.0);
                         }
                     }
-                    // want the two axes that aren't ax, sorted by their mass in axis_sum
+                    // want the two axes that aren't ax, sorted by their mass in
+                    // axis_sum
                     vec![Plane::new(*ax, not_it[1]), Plane::new(*ax, not_it[0])]
                 }
             }
@@ -324,16 +339,22 @@ impl Molecule {
                 plane: planes[0],
             },
             (2, 2) => {
-                let axis = axes[0];
-                // this is just a heuristic so far, but for my test cases the
-                // actual σᵥ plane is the second one and σₕ is the first. it's
-                // unclear that this will always be the case
-                let plane = if planes.len() > 1 {
-                    planes[1]
+                let (ax, bx) = (axes[0], axes[1]);
+                let (c3, c2) = if self.is_c2(ax, eps) && self.is_c3(bx, eps) {
+                    (bx, ax)
+                } else if self.is_c3(ax, eps) && self.is_c2(bx, eps) {
+                    (ax, bx)
                 } else {
-                    planes[0]
+                    panic!("expected one c2 and one c3 for d3h");
                 };
-                C3v { axis, plane }
+                let (sh, sv) = if planes[0].perp() == c3 {
+                    (planes[0], planes[1])
+                } else if planes[1].perp() == c3 {
+                    (planes[1], planes[0])
+                } else {
+                    panic!("expected to find a plane ⊥ c3 axis");
+                };
+                D3h { c3, c2, sh, sv }
             }
             (1, 2) => C2v {
                 axis: axes[0],
@@ -611,6 +632,70 @@ impl Molecule {
                 // defer to the Cs implementation for now to satisfy summarize
                 // test
                 self.irrep_approx(&Cs { plane }, eps)
+            }
+            D3h { c3, c2, sh, sv } => {
+                // NOTE: skipping the inversion for now
+
+                // C₃, C₂, σₕ, σᵥ
+                let mut chars = (0, 0, 0, 0);
+                // C3 axis
+                chars.0 = {
+                    let new = self.rotate(120.0, c3);
+                    if new.abs_diff_eq(self, eps) {
+                        1 // the same
+                    } else if new.rotate(-120.0, c3).abs_diff_eq(self, eps) {
+                        -1 // the opposite
+                    } else {
+                        0 // something else
+                    }
+                };
+                // second axis, assuming c2
+                chars.1 = {
+                    let new = self.rotate(180.0, c2);
+                    if new.abs_diff_eq(self, eps) {
+                        1 // the same
+                    } else if new.rotate(180.0, c2).abs_diff_eq(self, eps) {
+                        -1 // the opposite
+                    } else {
+                        0 // something else
+                    }
+                };
+                // first plane
+                chars.2 = {
+                    let new = self.reflect(sh);
+                    if new.abs_diff_eq(self, eps) {
+                        1
+                    } else if new.reflect(sh).abs_diff_eq(self, eps) {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                // second plane
+                chars.3 = {
+                    let new = self.reflect(sv);
+                    if new.abs_diff_eq(self, eps) {
+                        1
+                    } else if new.reflect(sv).abs_diff_eq(self, eps) {
+                        -1
+                    } else {
+                        0
+                    }
+                };
+                match chars {
+                    (1, 1, 1, 1) => Ok(A1p),
+                    (1, -1, 1, -1) => Ok(A2p),
+                    // second 1 is really 2, but this should work
+                    (-1, 0, 1, 0) => Ok(Ep),
+                    (1, 1, -1, -1) => Ok(A1pp),
+                    (1, -1, -1, 1) => Ok(A2pp),
+                    // again, really -2 but might work
+                    (-1, 0, -1, 0) => Ok(Epp),
+                    _ => Err(SymmetryError::new(&format!(
+                        "failed to match {:?} on\n{}",
+                        chars, &self
+                    ))),
+                }
             }
         }
     }
