@@ -1,6 +1,8 @@
 //! tests for geometrical operations like the center of mass and the moment of
 //! inertia
 
+use std::str::FromStr;
+
 use crate::*;
 use approx::assert_abs_diff_eq;
 

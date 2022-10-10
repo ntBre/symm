@@ -1,11 +1,13 @@
+use std::str::FromStr;
+
+use crate::point_group::PointGroup::*;
 use crate::Axis::*;
-use crate::PointGroup::*;
 use crate::*;
 
 struct Test<'a> {
     msg: &'a str,
     mol: &'a str,
-    pg: PointGroup,
+    pg: point_group::PointGroup,
     eps: f64,
 }
 
@@ -65,7 +67,7 @@ H      0.00000000  0.90205573  1.26058509
 H     -0.00000000 -0.90205573  1.26058509
 ",
             pg: D2h {
-                axes: vec![X, Y, Z],
+                axes: [X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-8,
@@ -79,7 +81,7 @@ H     -0.00000000 -0.90205573  1.26058509
  C          0.0000000000        0.7271526187        0.0000000000
 ",
             pg: D2h {
-                axes: vec![X, Y, Z],
+                axes: [X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-8,
@@ -95,7 +97,7 @@ H         -0.000000000000      0.902057584085      1.260565245600
 H          0.000000000000     -0.902057584056      1.260565246420
 ",
             pg: D2h {
-                axes: vec![X, Y, Z],
+                axes: [X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-8,

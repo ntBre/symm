@@ -1,7 +1,9 @@
 use crate::{
+    plane::Plane,
+    point_group::PointGroup,
     Axis::*,
     Irrep::{self, *},
-    Molecule, Plane, PointGroup,
+    Molecule,
 };
 use std::str::FromStr;
 
@@ -163,7 +165,7 @@ H     -1.23098540 -0.92361100 -0.39873220
 H     -1.23098540  0.92361100 -0.39873220
 ",
             pg: PointGroup::D2h {
-                axes: vec![Z, X, Y],
+                axes: [Z, X, Y],
                 planes: [Plane(X, Y), Plane(Y, Z), Plane(X, Z)],
             },
             eps: 1e-5,
@@ -179,7 +181,7 @@ H      1.36750740 -0.95203650  0.46265790
 H      1.36750740  0.95203650  0.46264510
 ",
             pg: PointGroup::D2h {
-                axes: vec![X, Y, Z],
+                axes: [X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-4,
@@ -195,7 +197,7 @@ H      1.39084240  0.94668350  0.46260050
 H      1.39084240 -0.94668350  0.46270260
 ",
             pg: PointGroup::D2h {
-                axes: vec![X, Y, Z],
+                axes: [X, Y, Z],
                 planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-3,

@@ -1,21 +1,23 @@
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    ops::{Add, BitXor, Sub},
-    str::FromStr,
-    string::ParseError,
-};
+use approx::AbsDiffEq;
+pub use atom::*;
+pub use irrep::*;
+pub use plane::*;
+pub use point_group::*;
+use std::fmt::Display;
 
 #[cfg(test)]
 mod tests;
 
-use approx::AbsDiffEq;
-pub use atom::*;
 pub mod atom;
 pub mod irrep;
-pub use irrep::*;
+mod mol_traits;
+mod plane;
+pub mod point_group;
+mod weights;
 
 use nalgebra as na;
+
+use crate::plane::Plane;
 
 type Vec3 = na::Vector3<f64>;
 type Mat3 = na::Matrix3<f64>;
@@ -24,37 +26,6 @@ static DEBUG: bool = false;
 
 /// angbohr and weights from spectro fortran source code
 pub const ANGBOHR: f64 = 0.52917706;
-
-const WEIGHTS: [f64; 28] = [
-    0.0,
-    1.007825035e+00,
-    4.00260324e+00,
-    7.0160030e+00,
-    9.0121822e+00,
-    11.0093054e+00,
-    12.0000000e+00,
-    14.003074002e+00,
-    15.99491463e+00,
-    18.99840322e+00,
-    19.9924356e+00,
-    22.9897677e+00,
-    23.9850423e+00,
-    26.9815386e+00,
-    27.9769271e+00,
-    30.9737620e+00,
-    31.97207070e+00,
-    34.968852721e+00,
-    39.9623837e+00,
-    38.9637074e+00,
-    39.9625906e+00,
-    44.9559100e+00,
-    47.9479473e+00,
-    50.9439617e+00,
-    51.9406513e+00,
-    54.9380471e+00,
-    55.9349393e+00,
-    58.9331976e+00,
-];
 
 // TODO expand beyond cartesian axes. an alternative formulation of this is to
 // align the geometry to a cartesian axis if it doesn't start like that. I think
@@ -83,283 +54,9 @@ impl Display for Axis {
     }
 }
 
-impl BitXor<Axis> for Plane {
-    type Output = Axis;
-
-    fn bitxor(self, rhs: Axis) -> Self::Output {
-        let Plane(ax, bx) = self;
-        use Axis::*;
-        match (ax, bx) {
-            (X, Y) | (Y, X) => match rhs {
-                X => Y,
-                Y => X,
-                Z => panic!("Z not in XY"),
-            },
-            (X, Z) | (Z, X) => match rhs {
-                X => Z,
-                Y => panic!("Y not in XZ"),
-                Z => X,
-            },
-            (Y, Z) | (Z, Y) => match rhs {
-                X => panic!("X not in YZ"),
-                Y => Z,
-                Z => Y,
-            },
-            _ => panic!("impossible Axis combination for Plane"),
-        }
-    }
-}
-
-// restrict these to combinations of cartesian axes for now. a more general
-// plane is described by (a, b, c) in the equation ax + by + cz = 0
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub struct Plane(Axis, Axis);
-
-impl Plane {
-    /// return a normalized version of Plane
-    fn new(ax: Axis, bx: Axis) -> Self {
-        use Axis::*;
-        match (ax, bx) {
-            (X, Y) | (Y, X) => Plane(X, Y),
-            (X, Z) | (Z, X) => Plane(X, Z),
-            (Y, Z) | (Z, Y) => Plane(Y, Z),
-            _ => panic!("impossible Axis combination for Plane"),
-        }
-    }
-
-    /// return the axis perpendicular to `self`
-    pub fn perp(&self) -> Axis {
-        let Plane(ax, bx) = self;
-        use Axis::*;
-        match (ax, bx) {
-            (X, Y) | (Y, X) => Z,
-            (X, Z) | (Z, X) => Y,
-            (Y, Z) | (Z, Y) => X,
-            _ => panic!("impossible Axis combination for Plane"),
-        }
-    }
-}
-
-impl Display for Plane {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Plane({}, {})", self.0, self.1)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum PointGroup {
-    C1,
-    C2 { axis: Axis },
-    Cs { plane: Plane },
-    C2v { axis: Axis, planes: [Plane; 2] },
-    C3v { axis: Axis, plane: Plane },
-    D2h { axes: Vec<Axis>, planes: [Plane; 3] },
-}
-
-impl Display for PointGroup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PointGroup::C1 => write!(f, "C1"),
-            PointGroup::C2 { axis: a } => write!(f, "C2({})", a),
-            PointGroup::Cs { plane: p } => write!(f, "Cs({})", p),
-            PointGroup::C2v {
-                axis: a,
-                planes: ps,
-            } => write!(f, "C2v({}, {}, {})", a, ps[0], ps[1]),
-            PointGroup::C3v { axis: a, plane } => {
-                write!(f, "C3v({}, {})", a, plane)
-            }
-            PointGroup::D2h { axes, planes } => {
-                write!(
-                    f,
-                    "D2h({}, {}, {}, {}, {}, {})",
-                    axes[0], axes[1], axes[2], planes[0], planes[1], planes[2]
-                )
-            }
-        }
-    }
-}
-
 #[derive(Clone, Default)]
 pub struct Molecule {
     pub atoms: Vec<Atom>,
-}
-
-impl std::fmt::Debug for Molecule {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
-    }
-}
-
-/// A Molecule is AbsDiffEq if each of its Atoms is
-impl AbsDiffEq for Molecule {
-    type Epsilon = f64;
-
-    fn default_epsilon() -> Self::Epsilon {
-        1e-8
-    }
-
-    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        assert!(self.atoms.len() == other.atoms.len());
-        let mut theirs = other.atoms.clone();
-        if self.atoms.len() != theirs.len() {
-            return false;
-        }
-        for atom in &self.atoms {
-            let mut pops = Vec::new();
-            let mut found = false;
-            for (i, btom) in theirs.iter().enumerate() {
-                if atom.abs_diff_eq(btom, epsilon) {
-                    pops.push(i);
-                    found = true;
-                    break;
-                }
-            }
-            if !found {
-                return false;
-            }
-            // remove high indices first
-            pops.sort();
-            pops.reverse();
-            for p in pops {
-                theirs.remove(p);
-            }
-        }
-        true
-    }
-}
-
-impl PartialEq for Molecule {
-    /// compare molecules for equality, irrespective of order. try to find an
-    /// atom in other that equals the current atom in self. If found, remove it,
-    /// so it can't be double-counted.
-    fn eq(&self, other: &Self) -> bool {
-        let mut theirs = other.atoms.clone();
-        if self.atoms.len() != theirs.len() {
-            return false;
-        }
-        for atom in &self.atoms {
-            let mut pops = Vec::new();
-            let mut found = false;
-            for (i, btom) in theirs.iter().enumerate() {
-                if *atom == *btom {
-                    pops.push(i);
-                    found = true;
-                    break;
-                }
-            }
-            if !found {
-                return false;
-            }
-            // remove high indices first
-            pops.sort();
-            pops.reverse();
-            for p in pops {
-                theirs.remove(p);
-            }
-        }
-        true
-    }
-}
-
-impl FromStr for Molecule {
-    type Err = ParseError;
-
-    /// parse lines like
-    ///      O           0.000000000    0.000000000   -0.124238453
-    ///      H           0.000000000    1.431390207    0.986041184
-    ///      H           0.000000000   -1.431390207    0.986041184
-    /// into a molecule
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut ret = Self::default();
-        let atomic_symbols: HashMap<_, _> = NUMBER_TO_SYMBOL
-            .iter()
-            .enumerate()
-            .map(|(i, s)| (s.to_string(), i))
-            .collect();
-        for line in s.lines() {
-            let fields = line.split_whitespace().collect::<Vec<_>>();
-            if fields.len() == 4 {
-                let sym = if let Some(&s) = atomic_symbols.get(fields[0]) {
-                    s
-                } else {
-                    panic!(
-                        "atomic symbol '{}' not found, tell Brent!",
-                        fields[0]
-                    );
-                };
-                ret.atoms.push(Atom::new(
-                    sym,
-                    fields[1].parse().unwrap(),
-                    fields[2].parse().unwrap(),
-                    fields[3].parse().unwrap(),
-                ));
-            }
-        }
-        Ok(ret)
-    }
-}
-
-impl Add<Vec<f64>> for Molecule {
-    type Output = Self;
-
-    /// panics if the size of `rhs` doesn't align with the size of `self.atoms`
-    fn add(mut self, rhs: Vec<f64>) -> Self::Output {
-        if 3 * self.atoms.len() != rhs.len() {
-            panic!(
-                "{} atoms but {} displacements",
-                self.atoms.len(),
-                rhs.len()
-            );
-        }
-        // panic above ensures rhs is exactly divisble by 3
-        for (i, chunk) in rhs.chunks_exact(3).enumerate() {
-            self.atoms[i].x += chunk[0];
-            self.atoms[i].y += chunk[1];
-            self.atoms[i].z += chunk[2];
-        }
-        self
-    }
-}
-
-impl Sub<Molecule> for Molecule {
-    type Output = Self;
-
-    fn sub(self, rhs: Molecule) -> Self::Output {
-        assert_eq!(self.atoms.len(), rhs.atoms.len());
-        let mut ret = Molecule::default();
-        for i in 0..self.atoms.len() {
-            assert_eq!(self.atoms[i].atomic_number, rhs.atoms[i].atomic_number);
-            ret.atoms.push(Atom::new(
-                self.atoms[i].atomic_number,
-                self.atoms[i].x - rhs.atoms[i].x,
-                self.atoms[i].y - rhs.atoms[i].y,
-                self.atoms[i].z - rhs.atoms[i].z,
-            ));
-        }
-        ret
-    }
-}
-
-impl Display for Molecule {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let precision = f.precision().unwrap_or(8);
-        let width = f.width().unwrap_or(precision + 4);
-        writeln!(f)?;
-        for atom in &self.atoms {
-            writeln!(
-                f,
-                "{:5}{:w$.p$}{:w$.p$}{:w$.p$}",
-                NUMBER_TO_SYMBOL[atom.atomic_number],
-                atom.x,
-                atom.y,
-                atom.z,
-                w = width,
-                p = precision,
-            )?;
-        }
-        Ok(())
-    }
 }
 
 impl Molecule {
@@ -395,7 +92,7 @@ impl Molecule {
     pub fn weights(&self) -> Vec<f64> {
         self.atoms
             .iter()
-            .map(|a| WEIGHTS[a.atomic_number])
+            .map(|a| weights::WEIGHTS[a.atomic_number])
             .collect()
     }
 
@@ -461,7 +158,7 @@ impl Molecule {
         let mut sum = 0.0;
         let mut com = Vec3::zeros();
         for atom in &self.atoms {
-            let w = WEIGHTS[atom.atomic_number];
+            let w = weights::WEIGHTS[atom.atomic_number];
             sum += w;
             com += w * Vec3::from_row_slice(&atom.coord());
         }
@@ -479,13 +176,13 @@ impl Molecule {
                 atomic_number: i,
             } = atom;
             // diagonal
-            ret[(0, 0)] += WEIGHTS[*i] * (y * y + z * z);
-            ret[(1, 1)] += WEIGHTS[*i] * (x * x + z * z);
-            ret[(2, 2)] += WEIGHTS[*i] * (x * x + y * y);
+            ret[(0, 0)] += weights::WEIGHTS[*i] * (y * y + z * z);
+            ret[(1, 1)] += weights::WEIGHTS[*i] * (x * x + z * z);
+            ret[(2, 2)] += weights::WEIGHTS[*i] * (x * x + y * y);
             // off-diagonal
-            ret[(1, 0)] -= WEIGHTS[*i] * x * y;
-            ret[(2, 0)] -= WEIGHTS[*i] * x * z;
-            ret[(2, 1)] -= WEIGHTS[*i] * y * z;
+            ret[(1, 0)] -= weights::WEIGHTS[*i] * x * y;
+            ret[(2, 0)] -= weights::WEIGHTS[*i] * x * z;
+            ret[(2, 1)] -= weights::WEIGHTS[*i] * y * z;
         }
         ret
     }
@@ -530,13 +227,13 @@ impl Molecule {
         (pr, axes)
     }
 
-    pub fn point_group(&self) -> PointGroup {
+    pub fn point_group(&self) -> point_group::PointGroup {
         self.point_group_approx(1e-8)
     }
 
-    pub fn point_group_approx(&self, eps: f64) -> PointGroup {
+    pub fn point_group_approx(&self, eps: f64) -> point_group::PointGroup {
+        use point_group::PointGroup::*;
         use Axis::*;
-        use PointGroup::*;
         let mut axes = Vec::new();
         let mut planes = Vec::new();
         for ax in [X, Y, Z] {
@@ -622,7 +319,11 @@ impl Molecule {
             // have to rework the planes a bit. also see the note about the
             // wrong point group for c3h3+ in the tests. to handle this properly
             // I'm probably going to have to do a lot of changing
-            (1, 1) | (2, 2) => {
+            (1, 1) => C3v {
+                axis: axes[0],
+                plane: planes[0],
+            },
+            (2, 2) => {
                 let axis = axes[0];
                 // this is just a heuristic so far, but for my test cases the
                 // actual σᵥ plane is the second one and σₕ is the first. it's
@@ -639,7 +340,7 @@ impl Molecule {
                 planes: [planes[0], planes[1]],
             },
             (3, 3) => D2h {
-                axes,
+                axes: axes.try_into().unwrap(),
                 // for some reason you put the least mass plane first
                 planes: [planes[2], planes[0], planes[1]],
             },
@@ -734,11 +435,11 @@ impl Molecule {
 
     pub fn irrep_approx(
         &self,
-        pg: &PointGroup,
+        pg: &point_group::PointGroup,
         eps: f64,
     ) -> Result<Irrep, SymmetryError> {
+        use point_group::PointGroup::*;
         use Irrep::*;
-        use PointGroup::*;
         match pg {
             C1 => Ok(A),
             C2 { axis } => {
@@ -916,7 +617,7 @@ impl Molecule {
 
     /// calls `irrep_approx` with the value of epsilon used in `PartialEq` for
     /// `Atom` (1e-8)
-    pub fn irrep(&self, pg: &PointGroup) -> Irrep {
+    pub fn irrep(&self, pg: &point_group::PointGroup) -> Irrep {
         self.irrep_approx(pg, 1e-8).unwrap()
     }
 }

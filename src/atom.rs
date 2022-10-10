@@ -6,7 +6,7 @@ use std::{
 
 use approx::AbsDiffEq;
 
-use crate::{Vec3, WEIGHTS};
+use crate::{weights::WEIGHTS, Vec3};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Atom {
