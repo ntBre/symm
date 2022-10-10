@@ -633,67 +633,15 @@ impl Molecule {
                 // test
                 self.irrep_approx(&Cs { plane }, eps)
             }
-            D3h { c3, c2, sh, sv } => {
-                // NOTE: skipping the inversion for now
-
-                // C₃, C₂, σₕ, σᵥ
-                let mut chars = (0, 0, 0, 0);
-                // C3 axis
-                chars.0 = {
-                    let new = self.rotate(120.0, c3);
-                    if new.abs_diff_eq(self, eps) {
-                        1 // the same
-                    } else if new.rotate(-120.0, c3).abs_diff_eq(self, eps) {
-                        -1 // the opposite
-                    } else {
-                        0 // something else
-                    }
-                };
-                // second axis, assuming c2
-                chars.1 = {
-                    let new = self.rotate(180.0, c2);
-                    if new.abs_diff_eq(self, eps) {
-                        1 // the same
-                    } else if new.rotate(180.0, c2).abs_diff_eq(self, eps) {
-                        -1 // the opposite
-                    } else {
-                        0 // something else
-                    }
-                };
-                // first plane
-                chars.2 = {
-                    let new = self.reflect(sh);
-                    if new.abs_diff_eq(self, eps) {
-                        1
-                    } else if new.reflect(sh).abs_diff_eq(self, eps) {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                // second plane
-                chars.3 = {
-                    let new = self.reflect(sv);
-                    if new.abs_diff_eq(self, eps) {
-                        1
-                    } else if new.reflect(sv).abs_diff_eq(self, eps) {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                match chars {
-                    (1, 1, 1, 1) => Ok(A1p),
-                    (1, -1, 1, -1) => Ok(A2p),
-                    (-1, _, 1, _) => Ok(Ep),
-                    (1, 1, -1, -1) => Ok(A1pp),
-                    (1, -1, -1, 1) => Ok(A2pp),
-                    (-1, _, -1, _) => Ok(Epp),
-                    _ => Err(SymmetryError::new(&format!(
-                        "failed to match {:?} on\n{}",
-                        chars, &self
-                    ))),
-                }
+            &D3h { c3: _, c2, sh, sv } => {
+                // defer to C2v, non-abelian point groups are hard
+                self.irrep_approx(
+                    &C2v {
+                        axis: c2,
+                        planes: [sh, sv],
+                    },
+                    eps,
+                )
             }
         }
     }
