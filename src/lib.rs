@@ -685,12 +685,10 @@ impl Molecule {
                 match chars {
                     (1, 1, 1, 1) => Ok(A1p),
                     (1, -1, 1, -1) => Ok(A2p),
-                    // second 1 is really 2, but this should work
-                    (-1, 0, 1, 0) => Ok(Ep),
+                    (-1, _, 1, _) => Ok(Ep),
                     (1, 1, -1, -1) => Ok(A1pp),
                     (1, -1, -1, 1) => Ok(A2pp),
-                    // again, really -2 but might work
-                    (-1, 0, -1, 0) => Ok(Epp),
+                    (-1, _, -1, _) => Ok(Epp),
                     _ => Err(SymmetryError::new(&format!(
                         "failed to match {:?} on\n{}",
                         chars, &self
