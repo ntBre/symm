@@ -638,7 +638,7 @@ impl Molecule {
                 self.irrep_approx(
                     &C2v {
                         axis: c2,
-                        planes: [sh, sv],
+                        planes: [sv, sh],
                     },
                     eps,
                 )
