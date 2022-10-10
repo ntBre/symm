@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fmt::Display,
-    ops::{Add, BitXor},
+    ops::{Add, BitXor, Sub},
     str::FromStr,
     string::ParseError,
 };
@@ -19,6 +19,8 @@ use nalgebra as na;
 
 type Vec3 = na::Vector3<f64>;
 type Mat3 = na::Matrix3<f64>;
+
+static DEBUG: bool = false;
 
 /// angbohr and weights from spectro fortran source code
 pub const ANGBOHR: f64 = 0.52917706;
@@ -320,6 +322,25 @@ impl Add<Vec<f64>> for Molecule {
     }
 }
 
+impl Sub<Molecule> for Molecule {
+    type Output = Self;
+
+    fn sub(self, rhs: Molecule) -> Self::Output {
+        assert_eq!(self.atoms.len(), rhs.atoms.len());
+        let mut ret = Molecule::default();
+        for i in 0..self.atoms.len() {
+            assert_eq!(self.atoms[i].atomic_number, rhs.atoms[i].atomic_number);
+            ret.atoms.push(Atom::new(
+                self.atoms[i].atomic_number,
+                self.atoms[i].x - rhs.atoms[i].x,
+                self.atoms[i].y - rhs.atoms[i].y,
+                self.atoms[i].z - rhs.atoms[i].z,
+            ));
+        }
+        ret
+    }
+}
+
 impl Display for Molecule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let precision = f.precision().unwrap_or(8);
@@ -520,18 +541,26 @@ impl Molecule {
         let mut planes = Vec::new();
         for ax in [X, Y, Z] {
             // check for C2 axis
-            if self.rotate(180.0, &ax).abs_diff_eq(self, eps) {
+            let rot = self.rotate(180.0, &ax);
+            if rot.abs_diff_eq(self, eps) {
                 axes.push(ax);
+            } else if DEBUG {
+                eprintln!("{}", rot - self.clone());
             }
             // check for C3 axis
-            let got = self.rotate(120.0, &ax);
-            if got.abs_diff_eq(self, eps) {
+            let rot = self.rotate(120.0, &ax);
+            if rot.abs_diff_eq(self, eps) {
                 axes.push(ax);
+            } else if DEBUG {
+                eprintln!("{}", rot - self.clone());
             }
         }
         for plane in [Plane(X, Y), Plane(X, Z), Plane(Y, Z)] {
-            if self.reflect(&plane).abs_diff_eq(self, eps) {
+            let got = self.reflect(&plane);
+            if got.abs_diff_eq(self, eps) {
                 planes.push(plane);
+            } else if DEBUG {
+                eprintln!("{}", got - self.clone());
             }
         }
 
