@@ -641,12 +641,7 @@ impl Molecule {
         let mut ret = Vec::with_capacity(self.atoms.len());
         for (i, atom) in self.to_vecs().iter().enumerate() {
             let v = mat * atom;
-            ret.push(Atom::new(
-                self.atoms[i].atomic_number,
-                v[0],
-                v[1],
-                v[2],
-            ));
+            ret.push(Atom::new(self.atoms[i].atomic_number, v[0], v[1], v[2]));
         }
         Self::new(ret)
     }

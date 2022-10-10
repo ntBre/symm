@@ -155,8 +155,7 @@ H     -2.11983822  0.00000000  0.00000000
             eps: 1e-6,
         },
     ];
-    let mut i = 0;
-    for test in &tests[..] {
+    for (i, test) in tests[..].iter().enumerate() {
         let mut mol = Molecule::from_str(test.mol).unwrap();
         mol.normalize();
         let pg = mol.point_group_approx(test.eps);
@@ -167,6 +166,5 @@ H     -2.11983822  0.00000000  0.00000000
                 test.msg
             );
         }
-        i += 1;
     }
 }
