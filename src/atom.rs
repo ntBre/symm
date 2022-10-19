@@ -144,8 +144,9 @@ impl Atom {
         )
     }
 
-    pub fn label(&self) -> &str {
-        assert!(self.atomic_number != 0 && self.atomic_number < 55);
+    #[inline]
+    pub const fn label(&self) -> &str {
+        debug_assert!(self.atomic_number != 0 && self.atomic_number < 55);
         NUMBER_TO_SYMBOL[self.atomic_number]
     }
 
