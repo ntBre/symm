@@ -5,11 +5,11 @@ use std::{
 };
 
 use approx::AbsDiffEq;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{weights::WEIGHTS, Vec3};
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Atom {
     pub atomic_number: usize,
     pub x: f64,

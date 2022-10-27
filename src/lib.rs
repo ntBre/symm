@@ -3,7 +3,7 @@ pub use atom::*;
 pub use irrep::*;
 pub use plane::*;
 pub use point_group::*;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::fmt::Display;
 
 #[cfg(test)]
@@ -55,7 +55,7 @@ impl Display for Axis {
     }
 }
 
-#[derive(Clone, Default, Serialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Molecule {
     pub atoms: Vec<Atom>,
 }
