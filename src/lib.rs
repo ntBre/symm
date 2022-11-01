@@ -44,6 +44,28 @@ pub enum Axis {
     Z = 2,
 }
 
+impl Axis {
+    /// return the axes not equal to `self`
+    pub fn not(&self) -> (Axis, Axis) {
+        use Axis::*;
+        match self {
+            Axis::X => (Y, Z),
+            Axis::Y => (X, Z),
+            Axis::Z => (X, Y),
+        }
+    }
+
+    /// return the planes containing `self`
+    pub fn planes(&self) -> [Plane; 2] {
+        use Axis::*;
+        match self {
+            Axis::X => [Plane(X, Y), Plane(X, Z)],
+            Axis::Y => [Plane(X, Y), Plane(Y, Z)],
+            Axis::Z => [Plane(X, Z), Plane(Y, Z)],
+        }
+    }
+}
+
 impl Display for Axis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

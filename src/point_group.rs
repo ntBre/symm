@@ -35,6 +35,84 @@ pub enum PointGroup {
     },
 }
 
+pub enum Pg {
+    C2v
+}
+
+impl Pg {
+    /// Returns `true` if the pg is [`C2v`].
+    ///
+    /// [`C2v`]: Pg::C2v
+    #[must_use]
+    pub fn is_c2v(&self) -> bool {
+        matches!(self, Self::C2v)
+    }
+}
+
+impl PointGroup {
+    /// return the principal symmetry axis of `self`, if it has one. None
+    /// otherwise
+    pub fn axis(&self) -> Option<Axis> {
+        match self {
+            PointGroup::C1 => None,
+            PointGroup::C2 { axis } => Some(*axis),
+            PointGroup::Cs { plane: _ } => None,
+            PointGroup::C2v { axis, planes: _ } => Some(*axis),
+            PointGroup::C3v { axis, plane: _ } => Some(*axis),
+            PointGroup::D2h { axes, planes: _ } => Some(axes[0]),
+            PointGroup::D3h {
+                c3,
+                c2: _,
+                sh: _,
+                sv: _,
+            } => Some(*c3),
+        }
+    }
+
+    pub fn subgroup(&self, to: Pg) -> Option<Self> {
+        match self {
+            PointGroup::C1 => None,
+            PointGroup::C2 { axis: _ } => None,
+            PointGroup::Cs { plane: _ } => None,
+            PointGroup::C2v { axis: _, planes: _ } => todo!(),
+            PointGroup::C3v { axis: _, plane: _ } => todo!(),
+            PointGroup::D2h { axes, planes } => {
+                if to.is_c2v() {
+                    // need the two planes containing axis
+                    Some(PointGroup::C2v {
+                        axis: axes[0],
+                        planes: [planes[1], planes[2]],
+                    })
+                } else {
+                    todo!()
+                }
+            }
+            PointGroup::D3h {
+                c3: _,
+                c2: _,
+                sh: _,
+                sv: _,
+            } => todo!(),
+        }
+    }
+
+    /// Returns `true` if the point group is [`C2v`].
+    ///
+    /// [`C2v`]: PointGroup::C2v
+    #[must_use]
+    pub fn is_c2v(&self) -> bool {
+        matches!(self, Self::C2v { .. })
+    }
+
+    /// Returns `true` if the point group is [`D2h`].
+    ///
+    /// [`D2h`]: PointGroup::D2h
+    #[must_use]
+    pub fn is_d2h(&self) -> bool {
+        matches!(self, Self::D2h { .. })
+    }
+}
+
 impl Display for PointGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
