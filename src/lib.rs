@@ -1,9 +1,11 @@
 use approx::AbsDiffEq;
 pub use atom::*;
 pub use irrep::*;
+use na::{vector, SymmetricEigen};
 pub use plane::*;
 pub use point_group::*;
-use serde::{Serialize, Deserialize};
+use rotor::Rotor;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[cfg(test)]
@@ -14,6 +16,7 @@ pub mod irrep;
 mod mol_traits;
 mod plane;
 pub mod point_group;
+pub mod rotor;
 mod weights;
 
 use nalgebra as na;
@@ -55,9 +58,22 @@ impl Display for Axis {
     }
 }
 
+#[macro_export]
+macro_rules! molecule {
+    ($($num:ident $x:literal $y:literal $z:literal$(,)?),+) => {
+	Molecule::new(vec![
+	    $(Atom::new_from_label(stringify!($num), $x, $y, $z),)*
+	    ])
+    };
+}
+
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Molecule {
     pub atoms: Vec<Atom>,
+}
+
+fn close(a: f64, b: f64, eps: f64) -> bool {
+    f64::abs(a - b) < eps
 }
 
 impl Molecule {
@@ -71,6 +87,29 @@ impl Molecule {
             ret.push(Vec3::new(atom.x, atom.y, atom.z));
         }
         ret
+    }
+
+    /// compute the type of molecular rotor based on the moments of inertia in
+    /// `moms` to the tolerance in `eps`. These tests are taken from the
+    /// [Crawford Programming
+    /// Projects](https://github.com/CrawfordGroup/ProgrammingProjects/blob/master/Project%2301/hints/step7-solution.md)
+    pub fn rotor_type(&self, moms: &Vec3, eps: f64) -> Rotor {
+        if self.atoms.len() == 2 {
+            return Rotor::Diatomic;
+        }
+        if moms[0] < eps {
+            Rotor::Linear
+        } else if close(moms[0], moms[1], eps) && close(moms[1], moms[2], eps) {
+            Rotor::SphericalTop
+        } else if close(moms[0], moms[1], eps) && !close(moms[1], moms[2], eps)
+        {
+            Rotor::OblateSymmTop
+        } else if !close(moms[0], moms[1], eps) && close(moms[1], moms[2], eps)
+        {
+            Rotor::ProlateSymmTop
+        } else {
+            Rotor::AsymmTop
+        }
     }
 
     /// build a `Molecule` from a slice of coordinates and a slice of
@@ -218,14 +257,41 @@ impl Molecule {
     /// smallest moment of inertia and z to the largest. returns the vector of
     /// principal moments of inertia and the principal axes used to make the
     /// transformation. adapted from SPECTRO
-    pub fn normalize(&mut self) -> (Vec3, Mat3) {
+    pub fn normalize(&mut self) -> (Vec3, Mat3, Rotor) {
         let com = self.com();
         self.translate(-com);
-        let pr = self.principal_moments();
-        let axes = self.principal_axes();
-        let (pr, axes) = eigen_sort(pr, axes);
+        let moi = self.moi();
+        let (mut pr, mut axes) = symm_eigen_decomp3(moi);
+        // this is what the fortran code does, rust was okay with making it INF, but
+        // this plays more nicely with the math we do later
+        const TOL: f64 = 1e-5;
+        let rotor = self.rotor_type(&pr, TOL);
+        if rotor.is_sym_top() {
+            let iaxis = if close(pr[0], pr[1], TOL) {
+                3
+            } else if close(pr[0], pr[2], TOL) {
+                2
+            } else if close(pr[1], pr[2], TOL) {
+                1
+            } else {
+                panic!("not a symmetric top: {:.8}, {}", pr, rotor);
+            };
+
+            if iaxis == 1 {
+                let egr = nalgebra::matrix![
+                0.0, 0.0, -1.0;
+                0.0, 1.0,  0.0;
+                1.0, 0.0,  0.0;
+                ];
+                let atemp = axes * egr;
+                axes = atemp;
+                pr = vector![pr[2], pr[1], pr[0]];
+            } else if iaxis == 2 {
+                todo!("dist.f:419");
+            }
+        }
         *self = self.transform(axes.transpose());
-        (pr, axes)
+        (pr, axes, rotor)
     }
 
     pub fn point_group(&self) -> point_group::PointGroup {
@@ -664,9 +730,9 @@ pub fn eigen_sort_dec(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
 fn eigen_sort_inner(vals: Vec3, vecs: Mat3, reverse: bool) -> (Vec3, Mat3) {
     let mut pairs: Vec<_> = vals.iter().enumerate().collect();
     if reverse {
-        pairs.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap());
+        pairs.sort_by(|(_, a), (_, b)| b.abs().partial_cmp(&a.abs()).unwrap());
     } else {
-        pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+        pairs.sort_by(|(_, a), (_, b)| a.abs().partial_cmp(&b.abs()).unwrap());
     }
     let vec = Vec3::from_iterator(pairs.iter().map(|i| *i.1));
     let mut mat = Mat3::zeros();
@@ -679,6 +745,21 @@ fn eigen_sort_inner(vals: Vec3, vecs: Mat3, reverse: bool) -> (Vec3, Mat3) {
 /// sort the eigenvalues and eigenvectors in ascending order by eigenvalue
 pub fn eigen_sort(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
     eigen_sort_inner(vals, vecs, false)
+}
+
+pub fn symm_eigen_decomp3(mat: Mat3) -> (Vec3, Mat3) {
+    let SymmetricEigen {
+        eigenvectors: vecs,
+        eigenvalues: vals,
+    } = SymmetricEigen::new(mat);
+    let mut pairs: Vec<_> = vals.iter().enumerate().collect();
+    pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
+    let (_, cols) = vecs.shape();
+    let mut ret = Mat3::zeros();
+    for i in 0..cols {
+        ret.set_column(i, &vecs.column(pairs[i].0));
+    }
+    (Vec3::from_iterator(pairs.iter().map(|a| *a.1)), ret)
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
