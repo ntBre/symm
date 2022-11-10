@@ -83,8 +83,8 @@ impl Display for Axis {
 #[macro_export]
 macro_rules! molecule {
     ($($num:ident $x:literal $y:literal $z:literal$(,)?),+) => {
-	Molecule::new(vec![
-	    $(Atom::new_from_label(stringify!($num), $x, $y, $z),)*
+	$crate::Molecule::new(vec![
+	    $($crate::Atom::new_from_label(stringify!($num), $x, $y, $z),)*
 	    ])
     };
 }
