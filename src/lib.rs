@@ -284,8 +284,8 @@ impl Molecule {
         self.translate(-com);
         let moi = self.moi();
         let (mut pr, mut axes) = symm_eigen_decomp3(moi);
-        // this is what the fortran code does, rust was okay with making it INF, but
-        // this plays more nicely with the math we do later
+        // this is what the fortran code does, rust was okay with making it INF,
+        // but this plays more nicely with the math we do later
         const TOL: f64 = 1e-5;
         let rotor = self.rotor_type(&pr, TOL);
         if rotor.is_sym_top() {
