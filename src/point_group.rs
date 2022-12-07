@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::plane::Plane;
 use crate::Axis;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PointGroup {
     C1,
     C2 {
