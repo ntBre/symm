@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
+
 use crate::Axis;
 
 mod ops;
 
 // restrict these to combinations of cartesian axes for now. a more general
 // plane is described by (a, b, c) in the equation ax + by + cz = 0
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize, Deserialize)]
 pub struct Plane(pub Axis, pub Axis);
 
 impl Plane {

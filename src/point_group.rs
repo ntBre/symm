@@ -1,9 +1,11 @@
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
+
 use crate::plane::Plane;
 use crate::Axis;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PointGroup {
     C1,
     C2 {
@@ -36,7 +38,7 @@ pub enum PointGroup {
 }
 
 pub enum Pg {
-    C2v
+    C2v,
 }
 
 impl Pg {

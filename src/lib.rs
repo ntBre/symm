@@ -36,7 +36,9 @@ pub const ANGBOHR: f64 = 0.52917706;
 // rotations pretty much assume you are along the cartesian axes
 
 // restrict these to the cartesian axes for now
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone)]
+#[derive(
+    Debug, Default, PartialEq, Eq, Copy, Clone, Serialize, Deserialize,
+)]
 pub enum Axis {
     X = 0,
     Y = 1,

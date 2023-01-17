@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
+
 #[macro_export]
 macro_rules! unset_rotor {
     () => {
@@ -10,7 +12,7 @@ macro_rules! unset_rotor {
 // TODO probably need to get rid of default here. it will complicate the spectro
 // usage a little bit but then I don't have to have the None variant and keep
 // checking for it
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Rotor {
     Diatomic,
     Linear,
