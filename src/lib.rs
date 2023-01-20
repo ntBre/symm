@@ -298,7 +298,7 @@ impl Molecule {
             } else if close(pr[1], pr[2], TOL) {
                 1
             } else {
-                panic!("not a symmetric top: {:.8}, {}", pr, rotor);
+                panic!("not a symmetric top: {pr:.8}, {rotor}");
             };
 
             if iaxis == 1 {
@@ -388,7 +388,7 @@ impl Molecule {
                     );
                     let mut not_it = vec![];
                     for s in axis_sum {
-                        if axes.iter().find(|(a, _)| *a == s.0).is_none() {
+                        if !axes.iter().any(|(a, _)| *a == s.0) {
                             not_it.push(s.0);
                         }
                     }
@@ -448,7 +448,7 @@ impl Molecule {
                 if d3h {
                     D3h { c3, c2, sh, sv }
                 } else {
-		    // this is really d5h at this point
+                    // this is really d5h at this point
                     C5v {
                         axis: c3,
                         plane: sv,
@@ -564,7 +564,7 @@ impl Molecule {
             Plane(X, Y) | Plane(Y, X) => Self::householder(0.0, 0.0, 1.0),
             Plane(X, Z) | Plane(Z, X) => Self::householder(0.0, 1.0, 0.0),
             Plane(Y, Z) | Plane(Z, Y) => Self::householder(1.0, 0.0, 0.0),
-            _ => panic!("unrecognized plane {:?}", plane),
+            _ => panic!("unrecognized plane {plane:?}"),
         };
         self.transform(ref_mat)
     }
@@ -586,8 +586,7 @@ impl Molecule {
                     Ok(B)
                 } else {
                     Err(SymmetryError::new(&format!(
-                        "failed to match {} for C2",
-                        axis
+                        "failed to match {axis} for C2"
                     )))
                 }
             }
@@ -649,8 +648,7 @@ impl Molecule {
                     (-1, 1, -1) => Ok(B1),
                     (-1, -1, 1) => Ok(B2),
                     _ => Err(SymmetryError::new(&format!(
-                        "failed to match {:?}",
-                        chars
+                        "failed to match {chars:?}"
                     ))),
                 }
             }
@@ -805,9 +803,9 @@ pub fn symm_eigen_decomp3(mat: Mat3) -> (Vec3, Mat3) {
     pairs.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
     let (_, cols) = vecs.shape();
     let mut ret = Mat3::zeros();
-    for i in 0..cols {
+    (0..cols).for_each(|i| {
         ret.set_column(i, &vecs.column(pairs[i].0));
-    }
+    });
     (Vec3::from_iterator(pairs.iter().map(|a| *a.1)), ret)
 }
 

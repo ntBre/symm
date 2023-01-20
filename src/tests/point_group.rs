@@ -203,7 +203,7 @@ H     -2.11983822  0.00000000  0.00000000
         mol.normalize();
         let pg = mol.point_group_approx(test.eps);
         if pg != test.pg {
-            println!("mol={:.8}", mol);
+            println!("mol={mol:.8}");
             assert_eq!(
                 pg, test.pg,
                 "wrong point group on test {i}: {}",
