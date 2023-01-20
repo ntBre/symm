@@ -448,11 +448,7 @@ impl Molecule {
                 if d3h {
                     D3h { c3, c2, sh, sv }
                 } else {
-                    // this is really d5h at this point
-                    C5v {
-                        axis: c3,
-                        plane: sv,
-                    }
+                    D5h { c5: c3, c2, sh, sv }
                 }
             }
             (1, 2) => C2v {
@@ -746,12 +742,12 @@ impl Molecule {
                 // test
                 self.irrep_approx(&Cs { plane }, eps)
             }
-            &D3h { c3: _, c2, sh, sv } => {
+            D3h { c3: _, c2, sh, sv } | D5h { c2, sh, sv, .. } => {
                 // defer to C2v, non-abelian point groups are hard
                 self.irrep_approx(
                     &C2v {
-                        axis: c2,
-                        planes: [sv, sh],
+                        axis: *c2,
+                        planes: [*sv, *sh],
                     },
                     eps,
                 )
