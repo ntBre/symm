@@ -22,6 +22,10 @@ pub enum PointGroup {
         axis: Axis,
         plane: Plane,
     },
+    C5v {
+        axis: Axis,
+        plane: Plane,
+    },
     D2h {
         axes: [Axis; 3],
         planes: [Plane; 3],
@@ -68,6 +72,7 @@ impl PointGroup {
                 sh: _,
                 sv: _,
             } => Some(*c3),
+            PointGroup::C5v { axis, .. } => Some(*axis),
         }
     }
 
@@ -89,12 +94,8 @@ impl PointGroup {
                     todo!()
                 }
             }
-            PointGroup::D3h {
-                c3: _,
-                c2: _,
-                sh: _,
-                sv: _,
-            } => todo!(),
+            PointGroup::D3h { .. } => todo!(),
+            PointGroup::C5v { .. } => todo!(),
         }
     }
 
@@ -137,6 +138,9 @@ impl Display for PointGroup {
             }
             PointGroup::D3h { c3, c2, sh, sv } => {
                 write!(f, "D3h(C3({}), C2({}), {}, {})", c3, c2, sh, sv)
+            }
+            PointGroup::C5v { axis, plane } => {
+                write!(f, "C5v(C5({axis}), {plane})")
             }
         }
     }

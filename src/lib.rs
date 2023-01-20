@@ -322,35 +322,16 @@ impl Molecule {
         self.point_group_approx(1e-8)
     }
 
-    fn is_c2(&self, ax: Axis, eps: f64) -> bool {
-        let rot = self.rotate(180.0, &ax);
-        rot.abs_diff_eq(self, eps)
-    }
-
-    fn is_c3(&self, ax: Axis, eps: f64) -> bool {
-        let rot = self.rotate(120.0, &ax);
-        rot.abs_diff_eq(self, eps)
-    }
-
     pub fn point_group_approx(&self, eps: f64) -> point_group::PointGroup {
         use point_group::PointGroup::*;
         use Axis::*;
         let mut axes = Vec::new();
         let mut planes = Vec::new();
         for ax in [X, Y, Z] {
-            // check for C2 axis
-            let rot = self.rotate(180.0, &ax);
-            if rot.abs_diff_eq(self, eps) {
-                axes.push(ax);
-            } else if DEBUG {
-                eprintln!("{}", rot - self.clone());
-            }
-            // check for C3 axis
-            let rot = self.rotate(120.0, &ax);
-            if rot.abs_diff_eq(self, eps) {
-                axes.push(ax);
-            } else if DEBUG {
-                eprintln!("{}", rot - self.clone());
+            for order in [2, 3, 5] {
+                if self.check_axis(ax, eps, order) {
+                    axes.push((ax, order));
+                }
             }
         }
         for plane in [Plane(X, Y), Plane(X, Z), Plane(Y, Z)] {
@@ -368,8 +349,8 @@ impl Molecule {
             // principal axis
             let mut axes_new = vec![];
             for s in axis_sum {
-                if axes.contains(&s.0) {
-                    axes_new.push(s.0);
+                if let Some(p) = axes.iter().find(|(a, _)| *a == s.0) {
+                    axes_new.push(*p);
                 }
             }
             axes_new
@@ -407,36 +388,55 @@ impl Molecule {
                     );
                     let mut not_it = vec![];
                     for s in axis_sum {
-                        if !axes.contains(&s.0) {
+                        if axes.iter().find(|(a, _)| *a == s.0).is_none() {
                             not_it.push(s.0);
                         }
                     }
                     // want the two axes that aren't ax, sorted by their mass in
                     // axis_sum
-                    vec![Plane::new(*ax, not_it[1]), Plane::new(*ax, not_it[0])]
+                    vec![
+                        Plane::new(ax.0, not_it[1]),
+                        Plane::new(ax.0, not_it[0]),
+                    ]
                 }
             }
             _ => panic!("impossible number of symmetry planes"),
         };
-        match (axes.len(), planes.len()) {
+        let pair = (axes.len(), planes.len());
+        match pair {
             (0, 1) => Cs { plane: planes[0] },
-            (1, 0) => C2 { axis: axes[0] },
+            // could assert axes[0].1 == 2 here
+            (1, 0) => C2 { axis: axes[0].0 },
             // NOTE should probably check the other two planes here, but I'd
             // have to rework the planes a bit. also see the note about the
             // wrong point group for c3h3+ in the tests. to handle this properly
             // I'm probably going to have to do a lot of changing
-            (1, 1) => C3v {
-                axis: axes[0],
-                plane: planes[0],
-            },
+            (1, 1) => {
+                let (ax, ord) = axes[0];
+                match ord {
+                    5 => C5v {
+                        axis: ax,
+                        plane: planes[0],
+                    },
+                    3 => C3v {
+                        axis: ax,
+                        plane: planes[0],
+                    },
+                    _ => panic!("unrecognized axis orders {ord:?}"),
+                }
+            }
             (2, 2) => {
                 let (ax, bx) = (axes[0], axes[1]);
-                let (c3, c2) = if self.is_c2(ax, eps) && self.is_c3(bx, eps) {
-                    (bx, ax)
-                } else if self.is_c3(ax, eps) && self.is_c2(bx, eps) {
-                    (ax, bx)
-                } else {
-                    panic!("expected one c2 and one c3 for d3h");
+                let (aa, ao) = ax;
+                let (ba, bo) = bx;
+                let (c3, c2, d3h) = match (ao, bo) {
+                    // checking for c2 and c3 for d3h
+                    (2, 3) => (ba, aa, true),
+                    (3, 2) => (aa, ba, true),
+                    // checking for c5
+                    (2, 5) => (ba, aa, false),
+                    (5, 2) => (aa, ba, false),
+                    _ => panic!("unknown axis orders {:?}", (ao, bo)),
                 };
                 let (sh, sv) = if planes[0].perp() == c3 {
                     (planes[0], planes[1])
@@ -445,19 +445,43 @@ impl Molecule {
                 } else {
                     panic!("expected to find a plane ⊥ c3 axis");
                 };
-                D3h { c3, c2, sh, sv }
+                if d3h {
+                    D3h { c3, c2, sh, sv }
+                } else {
+		    // this is really d5h at this point
+                    C5v {
+                        axis: c3,
+                        plane: sv,
+                    }
+                }
             }
             (1, 2) => C2v {
-                axis: axes[0],
+                axis: axes[0].0,
                 planes: [planes[0], planes[1]],
             },
-            (3, 3) => D2h {
-                axes: axes.try_into().unwrap(),
-                // for some reason you put the least mass plane first
-                planes: [planes[2], planes[0], planes[1]],
-            },
+            (3, 3) => {
+                let axes: Vec<_> = axes.into_iter().map(|(a, _)| a).collect();
+                D2h {
+                    axes: axes.try_into().unwrap(),
+                    // for some reason you put the least mass plane first
+                    planes: [planes[2], planes[0], planes[1]],
+                }
+            }
             _ => C1,
         }
+    }
+
+    /// check if `ax` is a symmetry axis of `self` of `order`. if it is, push it
+    /// to axes and return true
+    fn check_axis(&self, ax: Axis, eps: f64, order: usize) -> bool {
+        let deg = 360.0 / order as f64;
+        let rot = self.rotate(deg, &ax);
+        if rot.abs_diff_eq(self, eps) {
+            return true;
+        } else if DEBUG {
+            eprintln!("{}", rot - self.clone());
+        }
+        false
     }
 
     /// compute the mass-weighted sum of the axes in `self` and sort them such
@@ -734,6 +758,7 @@ impl Molecule {
                     eps,
                 )
             }
+            C5v { .. } => todo!(),
         }
     }
 
