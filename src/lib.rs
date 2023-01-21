@@ -318,6 +318,7 @@ impl Molecule {
         (pr, axes, rotor)
     }
 
+    /// call [point_group_approx] with the default epsilon of 1e-8
     pub fn point_group(&self) -> point_group::PointGroup {
         self.point_group_approx(1e-8)
     }
