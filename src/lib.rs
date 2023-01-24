@@ -656,7 +656,7 @@ impl Molecule {
                 // test
                 self.irrep_approx(&Cs { plane }, eps)
             }
-            D3h { c3: _, c2, sh, sv } | D5h { c2, sh, sv, .. } => {
+            D3h { c3: _, c2, sh, sv } => {
                 // defer to C2v, non-abelian point groups are hard
                 self.irrep_approx(
                     &C2v {
@@ -666,7 +666,30 @@ impl Molecule {
                     eps,
                 )
             }
+            D5h { .. } => self.d5h_irrep(pg, eps),
             C5v { .. } => todo!(),
+        }
+    }
+
+    pub fn d5h_irrep(
+        &self,
+        pg: &point_group::PointGroup,
+        eps: f64,
+    ) -> Result<Irrep, SymmetryError> {
+        let PointGroup::D5h { c5, c2, sh, sv } = pg else {unreachable!()};
+        let c5_1 = self.axis_irrep(c5, 72.0, eps);
+        let c5_2 = self.axis_irrep(c5, 144.0, eps);
+        let c2_1 = self.axis_irrep(c2, 180.0, eps);
+        let s1 = self.plane_irrep(sh, eps);
+        let s2 = self.plane_irrep(sv, eps);
+        match (c5_1, c5_2, c2_1, s1, s2) {
+            (1, 1, 1, 1, 1) => Ok(Irrep::A1p),
+            (1, 1, 1, -1, -1) => Ok(Irrep::A1pp),
+            (1, 1, -1, 1, -1) => Ok(Irrep::A2p),
+            (1, 1, -1, -1, 1) => Ok(Irrep::A2pp),
+            // Es aren't going to work because you actually have to add them up,
+            // and I can't do all 5 C5s or all 5 σᵥs, so just return a generic E
+            _ => Ok(Irrep::E),
         }
     }
 

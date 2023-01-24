@@ -34,6 +34,8 @@ pub enum Irrep {
     A1pp,
     A2pp,
     Epp,
+    // generic E since I can't differentiate between them
+    E,
 }
 
 impl Display for Irrep {
@@ -61,6 +63,7 @@ impl Display for Irrep {
             Irrep::A1pp => "A1''",
             Irrep::A2pp => "A2''",
             Irrep::Epp => "E''",
+            Irrep::E => "E",
         })
     }
 }
