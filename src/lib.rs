@@ -423,8 +423,8 @@ impl Molecule {
                         axis: ax,
                         plane: planes[0],
                     },
-		    // this is the C2h point group, assuming it has an inversion
-		    // center. we could pick either Cs or C2 as valid subgroups
+                    // this is the C2h point group, assuming it has an inversion
+                    // center. we could pick either Cs or C2 as valid subgroups
                     2 => C2 { axis: ax },
                     _ => panic!("unrecognized axis order: {ord:?}"),
                 }
@@ -569,6 +569,28 @@ impl Molecule {
         self.transform(ref_mat)
     }
 
+    fn axis_irrep(&self, axis: &Axis, deg: f64, eps: f64) -> i32 {
+        let new = self.rotate(deg, axis);
+        if new.abs_diff_eq(self, eps) {
+            1
+        } else if new.rotate(deg, axis).abs_diff_eq(self, eps) {
+            -1
+        } else {
+            0
+        }
+    }
+
+    fn plane_irrep(&self, plane: &Plane, eps: f64) -> i32 {
+        let new = self.reflect(plane);
+        if new.abs_diff_eq(self, eps) {
+            1
+        } else if new.reflect(plane).abs_diff_eq(self, eps) {
+            -1
+        } else {
+            0
+        }
+    }
+
     pub fn irrep_approx(
         &self,
         pg: &point_group::PointGroup,
@@ -578,155 +600,43 @@ impl Molecule {
         use Irrep::*;
         match pg {
             C1 => Ok(A),
-            C2 { axis } => {
-                let new = self.rotate(180.0, axis);
-                if new.abs_diff_eq(self, eps) {
-                    Ok(A)
-                } else if new.rotate(180.0, axis).abs_diff_eq(self, eps) {
-                    Ok(B)
-                } else {
-                    Err(SymmetryError::new(&format!(
-                        "failed to match {axis} for C2"
-                    )))
-                }
-            }
-            Cs { plane } => {
-                let new = self.reflect(plane);
-                if new.abs_diff_eq(self, eps) {
-                    Ok(Ap)
-                } else if new.reflect(plane).abs_diff_eq(self, eps) {
-                    Ok(App)
-                } else {
-                    Err(SymmetryError::new(&format!(
-                        "failed to match {plane} for Cs"
-                    )))
-                }
-            }
-            // TODO this is where the plane order can matter - B1 vs B2. as long
-            // as you call `irrep` multiple times with the same PointGroup, you
-            // should get consistent results at least. source of the issue is in
-            // point_group - order of planes there should be based on something
-            // besides random choice of iteration order in the implementation
-            // (mass?)
+            C2 { axis } => match self.axis_irrep(axis, 180.0, eps) {
+                1 => Ok(A),
+                -1 => Ok(B),
+                _ => Err(SymmetryError::new(&format!(
+                    "failed to match {axis} for C2"
+                ))),
+            },
+            Cs { plane } => match self.plane_irrep(plane, eps) {
+                1 => Ok(Ap),
+                -1 => Ok(App),
+                _ => Err(SymmetryError::new(&format!(
+                    "failed to match {plane} for Cs"
+                ))),
+            },
             C2v { axis, planes } => {
-                let mut chars = (0, 0, 0);
-                // TODO would be nice to abstract these into some kind of apply
-                // function
-                chars.0 = {
-                    let new = self.rotate(180.0, axis);
-                    if new.abs_diff_eq(self, eps) {
-                        1 // the same
-                    } else if new.rotate(180.0, axis).abs_diff_eq(self, eps) {
-                        -1 // the opposite
-                    } else {
-                        0 // something else
-                    }
-                };
-                chars.1 = {
-                    let new = self.reflect(&planes[0]);
-                    if new.abs_diff_eq(self, eps) {
-                        1
-                    } else if new.reflect(&planes[0]).abs_diff_eq(self, eps) {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                chars.2 = {
-                    let new = self.reflect(&planes[1]);
-                    if new.abs_diff_eq(self, eps) {
-                        1
-                    } else if new.reflect(&planes[1]).abs_diff_eq(self, eps) {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                match chars {
+                let a = self.axis_irrep(axis, 180.0, eps);
+                let p1 = self.plane_irrep(&planes[0], eps);
+                let p2 = self.plane_irrep(&planes[1], eps);
+                match (a, p1, p2) {
                     (1, 1, 1) => Ok(A1),
                     (1, -1, -1) => Ok(A2),
                     (-1, 1, -1) => Ok(B1),
                     (-1, -1, 1) => Ok(B2),
-                    _ => Err(SymmetryError::new(&format!(
+                    chars @ _ => Err(SymmetryError::new(&format!(
                         "failed to match {chars:?}"
                     ))),
                 }
             }
             D2h { axes, planes } => {
                 // NOTE: skipping the inversion for now
-
-                // C2, C2, C2, σ, σ, σ
-                let mut chars = (0, 0, 0, 0, 0, 0);
-                // first axis
-                chars.0 = {
-                    let new = self.rotate(180.0, &axes[0]);
-                    if new.abs_diff_eq(self, eps) {
-                        1 // the same
-                    } else if new.rotate(180.0, &axes[0]).abs_diff_eq(self, eps)
-                    {
-                        -1 // the opposite
-                    } else {
-                        0 // something else
-                    }
-                };
-                // second axis
-                chars.1 = {
-                    let new = self.rotate(180.0, &axes[1]);
-                    if new.abs_diff_eq(self, eps) {
-                        1 // the same
-                    } else if new.rotate(180.0, &axes[1]).abs_diff_eq(self, eps)
-                    {
-                        -1 // the opposite
-                    } else {
-                        0 // something else
-                    }
-                };
-                // third axis
-                chars.2 = {
-                    let new = self.rotate(180.0, &axes[2]);
-                    if new.abs_diff_eq(self, eps) {
-                        1 // the same
-                    } else if new.rotate(180.0, &axes[2]).abs_diff_eq(self, eps)
-                    {
-                        -1 // the opposite
-                    } else {
-                        0 // something else
-                    }
-                };
-                // first plane
-                chars.3 = {
-                    let new = self.reflect(&planes[0]);
-                    if new.abs_diff_eq(self, eps) {
-                        1
-                    } else if new.reflect(&planes[0]).abs_diff_eq(self, eps) {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                // second plane
-                chars.4 = {
-                    let new = self.reflect(&planes[1]);
-                    if new.abs_diff_eq(self, eps) {
-                        1
-                    } else if new.reflect(&planes[1]).abs_diff_eq(self, eps) {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                // third plane
-                chars.5 = {
-                    let new = self.reflect(&planes[2]);
-                    if new.abs_diff_eq(self, eps) {
-                        1
-                    } else if new.reflect(&planes[2]).abs_diff_eq(self, eps) {
-                        -1
-                    } else {
-                        0
-                    }
-                };
-                match chars {
+                let c2a = self.axis_irrep(&axes[0], 180.0, eps);
+                let c2b = self.axis_irrep(&axes[1], 180.0, eps);
+                let c2c = self.axis_irrep(&axes[2], 180.0, eps);
+                let sa = self.plane_irrep(&planes[0], eps);
+                let sb = self.plane_irrep(&planes[1], eps);
+                let sc = self.plane_irrep(&planes[2], eps);
+                match (c2a, c2b, c2c, sa, sb, sc) {
                     (1, 1, 1, 1, 1, 1) => Ok(Ag),
                     (1, -1, -1, 1, -1, -1) => Ok(B1g),
                     (-1, 1, -1, -1, 1, -1) => Ok(B2g),
@@ -735,7 +645,7 @@ impl Molecule {
                     (1, -1, -1, -1, 1, 1) => Ok(B1u),
                     (-1, 1, -1, 1, -1, 1) => Ok(B2u),
                     (-1, -1, 1, 1, 1, -1) => Ok(B3u),
-                    _ => Err(SymmetryError::new(&format!(
+                    chars @ _ => Err(SymmetryError::new(&format!(
                         "failed to match {:?} on\n{}",
                         chars, &self
                     ))),
