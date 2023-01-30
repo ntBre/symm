@@ -27,6 +27,9 @@ pub enum Irrep {
     B1u,
     B2u,
     B3u,
+    // C2h
+    Bg,
+    Bu,
     // D3h
     A1p,
     A2p,
@@ -64,6 +67,8 @@ impl Display for Irrep {
             Irrep::A2pp => "A2''",
             Irrep::Epp => "E''",
             Irrep::E => "E",
+            Irrep::Bg => "Bg",
+            Irrep::Bu => "Bu",
         })
     }
 }

@@ -623,7 +623,7 @@ impl Molecule {
                     (1, -1, -1) => Ok(A2),
                     (-1, 1, -1) => Ok(B1),
                     (-1, -1, 1) => Ok(B2),
-                    chars @ _ => Err(SymmetryError::new(&format!(
+                    chars => Err(SymmetryError::new(&format!(
                         "failed to match {chars:?}"
                     ))),
                 }
@@ -645,16 +645,16 @@ impl Molecule {
                     (1, -1, -1, -1, 1, 1) => Ok(B1u),
                     (-1, 1, -1, 1, -1, 1) => Ok(B2u),
                     (-1, -1, 1, 1, 1, -1) => Ok(B3u),
-                    chars @ _ => Err(SymmetryError::new(&format!(
+                    chars => Err(SymmetryError::new(&format!(
                         "failed to match {:?} on\n{}",
                         chars, &self
                     ))),
                 }
             }
-            &C3v { axis: _, plane } => {
+            C3v { axis: _, plane } => {
                 // defer to the Cs implementation for now to satisfy summarize
                 // test
-                self.irrep_approx(&Cs { plane }, eps)
+                self.irrep_approx(&Cs { plane: *plane }, eps)
             }
             D3h { c3: _, c2, sh, sv } => {
                 // defer to C2v, non-abelian point groups are hard
@@ -668,6 +668,22 @@ impl Molecule {
             }
             D5h { .. } => self.d5h_irrep(pg, eps),
             C5v { .. } => todo!(),
+            C2h { axis, plane } => {
+                let m = (
+                    self.axis_irrep(axis, 180.0, eps),
+                    self.plane_irrep(plane, eps),
+                );
+                match m {
+                    (1, 1) => Ok(Ag),
+                    (-1, -1) => Ok(Bg),
+                    (1, -1) => Ok(Au),
+                    (-1, 1) => Ok(Bu),
+                    chars => Err(SymmetryError::new(&format!(
+                        "failed to match {:?} on\n{}",
+                        chars, &self
+                    ))),
+                }
+            }
         }
     }
 
