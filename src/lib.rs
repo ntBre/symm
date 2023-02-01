@@ -423,9 +423,10 @@ impl Molecule {
                         axis: ax,
                         plane: planes[0],
                     },
-                    // this is the C2h point group, assuming it has an inversion
-                    // center. we could pick either Cs or C2 as valid subgroups
-                    2 => C2 { axis: ax },
+                    2 => C2h {
+                        axis: ax,
+                        plane: planes[0],
+                    },
                     _ => panic!("unrecognized axis order: {ord:?}"),
                 }
             }
