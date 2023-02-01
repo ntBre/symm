@@ -374,8 +374,8 @@ impl Molecule {
                     // 2. Plane(highest axis, second-highest axis)
                     // 3. Plane(second-highest, third-highest)
                     [
-                        Plane::new(axis_sum[0].0, axis_sum[2].0),
                         Plane::new(axis_sum[0].0, axis_sum[1].0),
+                        Plane::new(axis_sum[0].0, axis_sum[2].0),
                         Plane::new(axis_sum[1].0, axis_sum[2].0),
                     ]
                     .into_iter()
@@ -462,10 +462,10 @@ impl Molecule {
             },
             (3, 3) => {
                 let axes: Vec<_> = axes.into_iter().map(|(a, _)| a).collect();
+		dbg!(&planes);
                 D2h {
                     axes: axes.try_into().unwrap(),
-                    // for some reason you put the least mass plane first
-                    planes: [planes[2], planes[0], planes[1]],
+                    planes: planes.try_into().unwrap(),
                 }
             }
             _ => C1,
@@ -634,10 +634,12 @@ impl Molecule {
                 let c2a = self.axis_irrep(&axes[0], 180.0, eps);
                 let c2b = self.axis_irrep(&axes[1], 180.0, eps);
                 let c2c = self.axis_irrep(&axes[2], 180.0, eps);
-                let sa = self.plane_irrep(&planes[0], eps);
+		// the plane of the molecule should now be first, and that
+		// corresponds to σ_yz from the point group table I'm using
+                let syz = self.plane_irrep(&planes[0], eps);
                 let sb = self.plane_irrep(&planes[1], eps);
                 let sc = self.plane_irrep(&planes[2], eps);
-                match (c2a, c2b, c2c, sa, sb, sc) {
+                match (c2b, c2a, c2c, sb, sc, syz) {
                     (1, 1, 1, 1, 1, 1) => Ok(Ag),
                     (1, -1, -1, 1, -1, -1) => Ok(B1g),
                     (-1, 1, -1, -1, 1, -1) => Ok(B2g),
