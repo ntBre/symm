@@ -462,7 +462,6 @@ impl Molecule {
             },
             (3, 3) => {
                 let axes: Vec<_> = axes.into_iter().map(|(a, _)| a).collect();
-		dbg!(&planes);
                 D2h {
                     axes: axes.try_into().unwrap(),
                     planes: planes.try_into().unwrap(),
@@ -634,8 +633,8 @@ impl Molecule {
                 let c2a = self.axis_irrep(&axes[0], 180.0, eps);
                 let c2b = self.axis_irrep(&axes[1], 180.0, eps);
                 let c2c = self.axis_irrep(&axes[2], 180.0, eps);
-		// the plane of the molecule should now be first, and that
-		// corresponds to σ_yz from the point group table I'm using
+                // the plane of the molecule should now be first, and that
+                // corresponds to σ_yz from the point group table I'm using
                 let syz = self.plane_irrep(&planes[0], eps);
                 let sb = self.plane_irrep(&planes[1], eps);
                 let sc = self.plane_irrep(&planes[2], eps);
