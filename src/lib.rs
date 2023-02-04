@@ -672,7 +672,22 @@ impl Molecule {
                 )
             }
             D5h { .. } => self.d5h_irrep(pg, eps),
-            C5v { .. } => todo!(),
+            C5v { axis, plane } => {
+                let c5_1 = self.axis_irrep(axis, 72.0, eps);
+                let c5_2 = self.axis_irrep(axis, 144.0, eps);
+                let s1 = self.plane_irrep(plane, eps);
+                match (c5_1, c5_2, s1) {
+                    (1, 1, 1) => Ok(A1),
+                    (1, 1, -1) => Ok(A2),
+                    (0, 0, 1) => Ok(E1),
+                    (0, 0, -1) => Ok(E2),
+                    chars => Err(SymmetryError::new(&format!(
+                        "failed to match {:?} on\n{}",
+                        dbg!(chars),
+                        &self
+                    ))),
+                }
+            }
             C2h { axis, plane } => {
                 let m = (
                     self.axis_irrep(axis, 180.0, eps),
@@ -708,8 +723,11 @@ impl Molecule {
             (1, 1, 1, -1, -1) => Ok(Irrep::A1pp),
             (1, 1, -1, 1, -1) => Ok(Irrep::A2p),
             (1, 1, -1, -1, 1) => Ok(Irrep::A2pp),
+            (0, 0, 1, 1, 1) => Ok(Irrep::E2p),
+            (0, 0, -1, 1, -1) => Ok(Irrep::E1p),
             // Es aren't going to work because you actually have to add them up,
-            // and I can't do all 5 C5s or all 5 σᵥs, so just return a generic E
+            // and I can't do all 5 C5s or all 5 σᵥs, so just return a generic
+            // E. above are just heuristics for the values I've seen in practice
             _ => Ok(Irrep::E),
         }
     }

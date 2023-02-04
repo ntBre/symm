@@ -18,6 +18,9 @@ pub enum Irrep {
     B2,
     B1,
     A2,
+    // C5v
+    E1,
+    E2,
     // D2h
     Ag,
     B1g,
@@ -37,6 +40,9 @@ pub enum Irrep {
     A1pp,
     A2pp,
     Epp,
+    // D5h
+    E1p,
+    E2p,
     // generic E since I can't differentiate between them
     E,
 }
@@ -69,6 +75,10 @@ impl Display for Irrep {
             Irrep::E => "E",
             Irrep::Bg => "Bg",
             Irrep::Bu => "Bu",
+            Irrep::E1p => "E1'",
+            Irrep::E2p => "E2'",
+            Irrep::E1 => "E1",
+            Irrep::E2 => "E2",
         })
     }
 }
