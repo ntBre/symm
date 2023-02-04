@@ -105,14 +105,6 @@ impl Molecule {
         Self { atoms }
     }
 
-    fn to_vecs(&self) -> Vec<Vec3> {
-        let mut ret = Vec::with_capacity(self.atoms.len());
-        for atom in &self.atoms {
-            ret.push(Vec3::new(atom.x, atom.y, atom.z));
-        }
-        ret
-    }
-
     /// compute the type of molecular rotor based on the moments of inertia in
     /// `moms` to the tolerance in `eps`. These tests are taken from the
     /// [Crawford Programming
@@ -508,8 +500,8 @@ impl Molecule {
     /// the new Molecule
     pub fn transform(&self, mat: na::Matrix3<f64>) -> Self {
         let mut ret = Vec::with_capacity(self.atoms.len());
-        for (i, atom) in self.to_vecs().iter().enumerate() {
-            let v = mat * atom;
+        for (i, Atom { x, y, z, .. }) in self.atoms.iter().enumerate() {
+            let v = mat * vector![*x, *y, *z];
             ret.push(Atom::new(self.atoms[i].atomic_number, v[0], v[1], v[2]));
         }
         Self::new(ret)
