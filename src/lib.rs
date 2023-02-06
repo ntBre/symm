@@ -671,7 +671,7 @@ impl Molecule {
                     (0, 0, -1) => Ok(E2),
                     chars => Err(SymmetryError::new(&format!(
                         "failed to match {:?} on\n{}",
-                        dbg!(chars),
+                        chars,
                         &self
                     ))),
                 }
