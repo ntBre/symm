@@ -454,11 +454,8 @@ impl Molecule {
             },
             (3, 3) => {
                 let axes: Vec<_> = axes.into_iter().map(|(a, _)| a).collect();
-                // for d2h, you want the second-highest mass axis first, then
-                // the highest, then the lowest
-                let axes = [axes[1], axes[0], axes[2]];
                 D2h {
-                    axes,
+                    axes: axes.try_into().unwrap(),
                     planes: planes.try_into().unwrap(),
                 }
             }
@@ -625,15 +622,15 @@ impl Molecule {
             }
             D2h { axes, planes } => {
                 // NOTE: skipping the inversion for now
-                let c2z = self.axis_irrep(&axes[0], 180.0, eps);
-                let c2y = self.axis_irrep(&axes[1], 180.0, eps);
-                let c2x = self.axis_irrep(&axes[2], 180.0, eps);
+                let c2a = self.axis_irrep(&axes[0], 180.0, eps);
+                let c2b = self.axis_irrep(&axes[1], 180.0, eps);
+                let c2c = self.axis_irrep(&axes[2], 180.0, eps);
                 // the plane of the molecule should now be first, and that
                 // corresponds to σ_yz from the point group table I'm using
                 let syz = self.plane_irrep(&planes[0], eps);
-                let sxy = self.plane_irrep(&planes[1], eps);
-                let sxz = self.plane_irrep(&planes[2], eps);
-                match (c2z, c2y, c2x, sxy, sxz, syz) {
+                let sb = self.plane_irrep(&planes[1], eps);
+                let sc = self.plane_irrep(&planes[2], eps);
+                match (c2b, c2a, c2c, sb, sc, syz) {
                     (1, 1, 1, 1, 1, 1) => Ok(Ag),
                     (1, -1, -1, 1, -1, -1) => Ok(B1g),
                     (-1, 1, -1, -1, 1, -1) => Ok(B2g),
