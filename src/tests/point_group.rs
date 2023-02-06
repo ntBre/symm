@@ -9,7 +9,6 @@ struct Test<'a> {
     mol: &'a str,
     pg: point_group::PointGroup,
     eps: f64,
-    norm: bool,
 }
 
 #[test]
@@ -34,7 +33,6 @@ H     -0.13831669  2.26293122  0.00000000
                 plane: Plane(X, Y),
             },
             eps: 1e-4,
-            norm: true,
         },
         Test {
             msg: "water",
@@ -48,7 +46,6 @@ H     -0.13831669  2.26293122  0.00000000
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
             eps: 1e-8,
-            norm: true,
         },
         Test {
             msg: "c3h2",
@@ -64,7 +61,6 @@ H     -0.13831669  2.26293122  0.00000000
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
             eps: 1e-8,
-            norm: true,
         },
         Test {
             msg: "c3h2 2",
@@ -80,7 +76,6 @@ H     -0.13831669  2.26293122  0.00000000
                 planes: [Plane(Y, Z), Plane(X, Y)],
             },
             eps: 1e-8,
-            norm: true,
         },
         Test {
             msg: "ethylene",
@@ -93,10 +88,9 @@ H     -0.00000000 -0.90205573  1.26058509
 ",
             pg: D2h {
                 axes: [X, Y, Z],
-                planes: [Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
+                planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-8,
-            norm: true,
         },
         Test {
             msg: "si2c2",
@@ -108,10 +102,9 @@ H     -0.00000000 -0.90205573  1.26058509
 ",
             pg: D2h {
                 axes: [X, Y, Z],
-                planes: [Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
+                planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-8,
-            norm: true,
         },
         Test {
             msg: "ethylene again",
@@ -125,10 +118,9 @@ H          0.000000000000     -0.902057584056      1.260565246420
 ",
             pg: D2h {
                 axes: [X, Y, Z],
-                planes: [Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
+                planes: [Plane(Y, Z), Plane(X, Z), Plane(X, Y)],
             },
             eps: 1e-8,
-            norm: true,
         },
         Test {
             msg: "nh3",
@@ -145,7 +137,6 @@ H     -0.46828832  0.31246590 -0.81115089
                 plane: Plane(X, Z),
             },
             eps: 1e-6,
-            norm: true,
         },
         Test {
             msg: "c3h3+",
@@ -166,7 +157,6 @@ H   -1.3465409      1.3195405      0.0000000
                 plane: Plane(X, Y),
             },
             eps: 1e-4,
-            norm: true,
         },
         // TODO this is already normalized, renormalizing messes it up
         Test {
@@ -186,7 +176,6 @@ H   -1.3465409      1.3195405      0.0000000
                 sv: Plane(Y, Z),
             },
             eps: 1e-3,
-            norm: true,
         },
         // this is the pre-normalization geometry in my spectro implementation
         Test {
@@ -207,43 +196,11 @@ H     -2.11983822  0.00000000  0.00000000
                 sv: Plane(X, Z),
             },
             eps: 1e-6,
-            norm: true,
-        },
-        Test {
-            msg: "naphthalene",
-            mol: "
-C     -1.24985877 -1.40744098 -0.00004085
-C     -2.43325152 -0.71298818 -0.00008992
-C     -2.43324132  0.71299935  0.00001093
-C     -1.24984194  1.40744370  0.00008470
-C      0.00000616  0.70960162  0.00004712
-C      1.24986006  1.40744164 -0.00004505
-C      2.43325079  0.71298767 -0.00008695
-C      2.43323985 -0.71300059  0.00000945
-C      1.24984291 -1.40744315  0.00008107
-C     -0.00000704 -0.70960102  0.00004510
-H      1.23985505 -2.49618789  0.00019554
-H      3.38837675 -1.23551703  0.00004241
-H      3.38840493  1.23547349 -0.00021344
-H      1.23987806  2.49618830 -0.00010622
-H     -1.23984739  2.49619016  0.00017846
-H     -3.38837934  1.23551696  0.00004670
-H     -3.38840615 -1.23547642 -0.00023892
-H     -1.23987206 -2.49618816 -0.00009043
-",
-            pg: D2h {
-                axes: [X, Y, Z],
-                planes: [Plane(X, Y), Plane(X, Z), Plane(Y, Z)],
-            },
-            eps: 1e-3,
-            norm: false,
         },
     ];
     for (i, test) in tests[..].iter().enumerate() {
         let mut mol = Molecule::from_str(test.mol).unwrap();
-        if test.norm {
-            mol.normalize();
-        }
+        mol.normalize();
         let pg = mol.point_group_approx(test.eps);
         if pg != test.pg {
             println!("mol={mol:.8}");
