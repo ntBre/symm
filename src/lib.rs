@@ -433,6 +433,13 @@ impl Molecule {
                     // checking for c5
                     (2, 5) => (ba, aa, false),
                     (5, 2) => (aa, ba, false),
+                    // weird, call this c2v
+                    (2, 2) => {
+                        return C2v {
+                            axis: aa,
+                            planes: planes.try_into().unwrap(),
+                        }
+                    }
                     _ => panic!("unknown axis orders {:?}", (ao, bo)),
                 };
                 let (sh, sv) = if planes[0].perp() == c3 {
@@ -671,8 +678,7 @@ impl Molecule {
                     (0, 0, -1) => Ok(E2),
                     chars => Err(SymmetryError::new(&format!(
                         "failed to match {:?} on\n{}",
-                        chars,
-                        &self
+                        chars, &self
                     ))),
                 }
             }
