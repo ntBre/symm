@@ -130,9 +130,9 @@ impl Molecule {
 
     /// build a `Molecule` from a slice of coordinates and a slice of
     /// atomic_numbers
-    pub fn from_slices(atomic_numbers: Vec<usize>, coords: &[f64]) -> Self {
+    pub fn from_slices(atomic_numbers: &[usize], coords: &[f64]) -> Self {
         assert_eq!(3 * atomic_numbers.len(), coords.len());
-        let mut atoms = Vec::new();
+        let mut atoms = Vec::with_capacity(atomic_numbers.len());
         for (i, atom) in coords.chunks(3).enumerate() {
             atoms.push(Atom::new(atomic_numbers[i], atom[0], atom[1], atom[2]));
         }
