@@ -2,7 +2,7 @@ TESTFLAGS = --test-threads=1 --nocapture
 ARGS =
 
 clippy:
-	cargo clippy --tests
+	cargo clippy --all
 
 test:
 	cargo test -- ${TESTFLAGS} ${ARGS}
