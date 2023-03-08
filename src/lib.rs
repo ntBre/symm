@@ -760,6 +760,8 @@ pub fn eigen_sort(vals: Vec3, vecs: Mat3) -> (Vec3, Mat3) {
     eigen_sort_inner(vals, vecs, false)
 }
 
+/// return the eigendecomposition of `mat`, with the eigenvalues and
+/// corresponding eigenvectors in ascending order.
 pub fn symm_eigen_decomp3(mat: Mat3) -> (Vec3, Mat3) {
     let SymmetricEigen {
         eigenvectors: vecs,
