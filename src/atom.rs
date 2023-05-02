@@ -123,6 +123,31 @@ pub const NUMBER_TO_SYMBOL: [&str; 55] = [
     "Sn", "Sb", "Te", "I", "Xe",
 ];
 
+fn symbol_to_number(s: &str) -> Option<usize> {
+    NUMBER_TO_SYMBOL.iter().position(|&x| x == s)
+}
+
+fn titlecase(s: &str) -> String {
+    let cs: Vec<_> = s.chars().collect();
+    let mut ret = String::from(cs[0]).to_uppercase();
+    for c in cs.iter().skip(1) {
+        ret.push_str(&c.to_lowercase().to_string());
+    }
+    ret
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn titlecase() {
+        assert_eq!(super::titlecase("AL"), "Al");
+        assert_eq!(super::titlecase("Al"), "Al");
+        assert_eq!(super::titlecase("al"), "Al");
+        assert_eq!(super::titlecase("H"), "H");
+        assert_eq!(super::titlecase("h"), "H");
+    }
+}
+
 impl Atom {
     pub fn new(atomic_number: usize, x: f64, y: f64, z: f64) -> Self {
         Self {
@@ -134,15 +159,13 @@ impl Atom {
     }
 
     pub fn new_from_label(atomic_symbol: &str, x: f64, y: f64, z: f64) -> Self {
-        Self::new(
-            NUMBER_TO_SYMBOL
-                .iter()
-                .position(|&x| x == atomic_symbol)
-                .unwrap(),
-            x,
-            y,
-            z,
-        )
+        let sym = match symbol_to_number(atomic_symbol) {
+            Some(s) => s,
+            None => symbol_to_number(&titlecase(atomic_symbol)).unwrap_or_else(
+                || panic!("failed to locate atomic symbol {atomic_symbol}"),
+            ),
+        };
+        Self::new(sym, x, y, z)
     }
 
     #[inline]
