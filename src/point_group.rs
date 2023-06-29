@@ -18,6 +18,10 @@ pub enum PointGroup {
         axis: Axis,
         plane: Plane,
     },
+    C6h {
+        c6: Axis,
+        sh: Plane,
+    },
     C2v {
         axis: Axis,
         planes: [Plane; 2],
@@ -81,16 +85,17 @@ impl PointGroup {
             PointGroup::C5v { axis, .. } => Some(*axis),
             PointGroup::D5h { c5, .. } => Some(*c5),
             PointGroup::C2h { axis, .. } => Some(*axis),
+            PointGroup::C6h { c6, .. } => Some(*c6),
         }
     }
 
     pub fn subgroup(&self, to: Pg) -> Option<Self> {
         match self {
             PointGroup::C1 => None,
-            PointGroup::C2 { axis: _ } => None,
-            PointGroup::Cs { plane: _ } => None,
-            PointGroup::C2v { axis: _, planes: _ } => todo!(),
-            PointGroup::C3v { axis: _, plane: _ } => todo!(),
+            PointGroup::C2 { .. } => None,
+            PointGroup::Cs { .. } => None,
+            PointGroup::C2v { .. } => todo!(),
+            PointGroup::C3v { .. } => todo!(),
             PointGroup::D2h { axes, planes } => {
                 if to.is_c2v() {
                     // need the two planes containing axis
@@ -106,6 +111,7 @@ impl PointGroup {
             PointGroup::C5v { .. } => todo!(),
             PointGroup::D5h { .. } => todo!(),
             PointGroup::C2h { .. } => todo!(),
+            PointGroup::C6h { .. } => todo!(),
         }
     }
 
@@ -158,6 +164,7 @@ impl Display for PointGroup {
             PointGroup::C2h { axis, plane } => {
                 write!(f, "C2h(C2({axis}), {plane})")
             }
+            PointGroup::C6h { c6, sh } => write!(f, "C6h(C6({c6}), {sh})"),
         }
     }
 }

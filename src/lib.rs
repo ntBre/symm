@@ -321,9 +321,10 @@ impl Molecule {
         let mut axes = Vec::new();
         let mut planes = Vec::new();
         for ax in [X, Y, Z] {
-            for order in [2, 3, 5] {
+            for order in [6, 5, 3, 2] {
                 if self.check_axis(ax, eps, order) {
                     axes.push((ax, order));
+                    break;
                 }
             }
         }
@@ -407,6 +408,10 @@ impl Molecule {
             (1, 1) => {
                 let (ax, ord) = axes[0];
                 match ord {
+                    6 => C6h {
+                        c6: ax,
+                        sh: planes[0],
+                    },
                     5 => C5v {
                         axis: ax,
                         plane: planes[0],
@@ -696,6 +701,17 @@ impl Molecule {
                         "failed to match {:?} on\n{}",
                         chars, &self
                     ))),
+                }
+            }
+            C6h { c6, sh } => {
+                let c = self.axis_irrep(c6, 60.0, eps);
+                let s = self.plane_irrep(sh, eps);
+                match (c, s) {
+                    (1, 1) => Ok(Ag),
+                    (-1, -1) => Ok(Bg),
+                    (1, -1) => Ok(Au),
+                    (-1, 1) => Ok(Bu),
+                    _ => Ok(E),
                 }
             }
         }
