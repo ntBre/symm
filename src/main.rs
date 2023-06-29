@@ -8,7 +8,7 @@ use symm::Molecule;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args();
-    let tol = if args.find(|s| s == "-t").is_some() {
+    let tol = if args.any(|s| s == "-t") {
         args.next().unwrap().parse().unwrap()
     } else {
         1e-6
