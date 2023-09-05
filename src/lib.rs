@@ -722,7 +722,9 @@ impl Molecule {
         pg: &point_group::PointGroup,
         eps: f64,
     ) -> Result<Irrep, SymmetryError> {
-        let PointGroup::D5h { c5, c2, sh, sv } = pg else {unreachable!()};
+        let PointGroup::D5h { c5, c2, sh, sv } = pg else {
+            unreachable!()
+        };
         let c5_1 = self.axis_irrep(c5, 72.0, eps);
         let c5_2 = self.axis_irrep(c5, 144.0, eps);
         let c2_1 = self.axis_irrep(c2, 180.0, eps);
