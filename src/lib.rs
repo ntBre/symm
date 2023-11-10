@@ -512,9 +512,14 @@ impl Molecule {
     /// the new Molecule
     pub fn transform(&self, mat: na::Matrix3<f64>) -> Self {
         let mut ret = Vec::with_capacity(self.atoms.len());
-        for (i, Atom { x, y, z, .. }) in self.atoms.iter().enumerate() {
+        for a @ Atom { x, y, z, .. } in self.atoms.iter() {
             let v = mat * vector![*x, *y, *z];
-            ret.push(Atom::new(self.atoms[i].atomic_number, v[0], v[1], v[2]));
+            ret.push(Atom {
+                x: v[0],
+                y: v[1],
+                z: v[2],
+                ..*a
+            });
         }
         Self::new(ret)
     }
