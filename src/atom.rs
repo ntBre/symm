@@ -15,6 +15,7 @@ pub struct Atom {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+    pub weight: Option<f64>,
 }
 
 impl PartialEq for Atom {
@@ -53,6 +54,7 @@ impl Neg for Atom {
             x: -self.x,
             y: -self.y,
             z: -self.z,
+            weight: self.weight,
         }
     }
 }
@@ -155,6 +157,7 @@ impl Atom {
             x,
             y,
             z,
+            weight: None,
         }
     }
 
@@ -179,6 +182,6 @@ impl Atom {
     }
 
     pub fn weight(&self) -> f64 {
-        WEIGHTS[self.atomic_number]
+        self.weight.unwrap_or(WEIGHTS[self.atomic_number])
     }
 }

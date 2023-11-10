@@ -148,7 +148,7 @@ impl Molecule {
     pub fn weights(&self) -> Vec<f64> {
         self.atoms
             .iter()
-            .map(|a| weights::WEIGHTS[a.atomic_number])
+            .map(|a| a.weight.unwrap_or(weights::WEIGHTS[a.atomic_number]))
             .collect()
     }
 
@@ -214,7 +214,7 @@ impl Molecule {
         let mut sum = 0.0;
         let mut com = Vec3::zeros();
         for atom in &self.atoms {
-            let w = weights::WEIGHTS[atom.atomic_number];
+            let w = atom.weight.unwrap_or(weights::WEIGHTS[atom.atomic_number]);
             sum += w;
             com += w * Vec3::from_row_slice(&atom.coord());
         }
@@ -230,15 +230,17 @@ impl Molecule {
                 y,
                 z,
                 atomic_number: i,
+                weight,
             } = atom;
+            let w = weight.unwrap_or(weights::WEIGHTS[*i]);
             // diagonal
-            ret[(0, 0)] += weights::WEIGHTS[*i] * (y * y + z * z);
-            ret[(1, 1)] += weights::WEIGHTS[*i] * (x * x + z * z);
-            ret[(2, 2)] += weights::WEIGHTS[*i] * (x * x + y * y);
+            ret[(0, 0)] += w * (y * y + z * z);
+            ret[(1, 1)] += w * (x * x + z * z);
+            ret[(2, 2)] += w * (x * x + y * y);
             // off-diagonal
-            ret[(1, 0)] -= weights::WEIGHTS[*i] * x * y;
-            ret[(2, 0)] -= weights::WEIGHTS[*i] * x * z;
-            ret[(2, 1)] -= weights::WEIGHTS[*i] * y * z;
+            ret[(1, 0)] -= w * x * y;
+            ret[(2, 0)] -= w * x * z;
+            ret[(2, 1)] -= w * y * z;
         }
         ret
     }

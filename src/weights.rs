@@ -1,3 +1,4 @@
+/// Default atomic masses if Atom.weight is None
 pub(crate) const WEIGHTS: [f64; 28] = [
     0.0,
     1.007825035e+00,
