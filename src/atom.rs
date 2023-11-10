@@ -15,6 +15,7 @@ pub struct Atom {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+    #[serde(default)]
     pub weight: Option<f64>,
 }
 
