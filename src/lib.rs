@@ -531,43 +531,35 @@ impl Molecule {
         let st = deg.sin();
         // from
         // https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions
-        #[rustfmt::skip]
-	let rot_mat = match axis {
-            X => {
-		na::Matrix3::new(
-		    1., 0., 0.,
-		    0., ct, -st,
-		    0., st, ct,
-		)
-            }
-            Y => {
-		na::Matrix3::new(
-		    ct, 0., st,
-		    0., 1., 0.,
-		    -st, 0., ct,
-		)
-            }
-            Z => {
-		na::Matrix3::new(
-		    ct, -st, 0.,
-		    st, ct, 0.,
-		    0., 0., 1.,
-		)
-            }
+        let rot_mat = match axis {
+            X => na::matrix![
+                1., 0., 0.;
+                0., ct, -st;
+                0., st, ct;
+            ],
+            Y => na::matrix![
+                ct, 0., st;
+                0., 1., 0.;
+                -st, 0., ct;
+            ],
+            Z => na::matrix![
+                ct, -st, 0.;
+                st, ct, 0.;
+                0., 0., 1.;
+            ],
         };
         self.transform(rot_mat)
     }
 
-    #[rustfmt::skip]
     /// return the special case of the Householder reflection in 3 dimensions
     /// described here:
     /// <https://en.wikipedia.org/wiki/Transformation_matrix#Reflection_2>
     fn householder(a: f64, b: f64, c: f64) -> na::Matrix3<f64> {
-        na::Matrix3::new(
-            1. - 2. * a * a, -2. * a * b, -2. * a * c,
-            -2. * a * b, 1. - 2. * b * b, -2. * b * c,
-            -2. * a * c, -2. * b * c, 1. - 2. * c * c,
-        )
+        na::matrix![
+            1. - 2. * a * a, -2. * a * b, -2. * a * c;
+            -2. * a * b, 1. - 2. * b * b, -2. * b * c;
+            -2. * a * c, -2. * b * c, 1. - 2. * c * c;
+        ]
     }
 
     pub fn reflect(&self, plane: &Plane) -> Self {
