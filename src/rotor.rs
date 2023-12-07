@@ -48,7 +48,7 @@ impl Rotor {
     /// [`Linear`]: Rotor::Linear
     #[must_use]
     pub fn is_linear(&self) -> bool {
-        matches!(self, Self::Linear)
+        matches!(self, Self::Linear | Self::Diatomic)
     }
 
     /// Returns `true` if the rotor is [`OblateSymmTop`].
