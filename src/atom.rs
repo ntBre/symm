@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     io::{self, ErrorKind},
     ops::{Add, AddAssign, Neg},
     str::FromStr,
@@ -79,9 +80,10 @@ impl AddAssign<Vec3> for Atom {
     }
 }
 
-impl ToString for Atom {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for Atom {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "{:2} {:15.10} {:15.10} {:15.10}",
             self.label(),
             self.x,

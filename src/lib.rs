@@ -2,7 +2,6 @@ use approx::AbsDiffEq;
 pub use atom::*;
 pub use irrep::*;
 use na::{vector, SymmetricEigen};
-pub use plane::*;
 pub use point_group::*;
 use rotor::Rotor;
 use serde::{Deserialize, Serialize};
@@ -379,7 +378,7 @@ impl Molecule {
                 } else {
                     // TODO this is probably wrong too, not sure if I'm actually
                     // looking at planes in `planes` like I wasn't above
-                    let ax = axes.get(0).expect(
+                    let ax = axes.first().expect(
                         "expecting at least 1 axis for more than 1 plane",
                     );
                     let mut not_it = vec![];
