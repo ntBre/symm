@@ -62,3 +62,20 @@ fn normalize() {
     got.normalize();
     assert_eq!(got, want);
 }
+
+#[test]
+fn normalize_diatomic() {
+    let mut got = molecule![
+        H      0.00000000  0.00000000  0.00000000,
+        O      0.00000000  0.00000000  1.30998562,
+    ];
+    let want = molecule![
+        H     -1.23233718  0.00000000  0.00000000,
+        O      0.07764845  0.00000000  0.00000000,
+    ];
+    got.normalize();
+    assert_eq!(got, want);
+
+    got.normalize();
+    assert_eq!(got, want);
+}
