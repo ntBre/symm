@@ -401,7 +401,8 @@ impl Molecule {
         match pair {
             (0, 1) => Cs { plane: planes[0] },
             // could assert axes[0].1 == 2 here
-            (1, 0) => C2 { axis: axes[0].0 },
+            (1, 0) if axes[0].1 == 2 => C2 { axis: axes[0].0 },
+            (1, 0) if axes[0].1 == 3 => C3 { axis: axes[0].0 },
             // NOTE should probably check the other two planes here, but I'd
             // have to rework the planes a bit. also see the note about the
             // wrong point group for c3h3+ in the tests. to handle this properly
@@ -712,6 +713,10 @@ impl Molecule {
                     _ => Ok(E),
                 }
             }
+            C3 { axis } => match self.axis_irrep(axis, 120.0, eps) {
+                1 => Ok(A),
+                _ => Ok(E),
+            },
         }
     }
 

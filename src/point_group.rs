@@ -11,6 +11,9 @@ pub enum PointGroup {
     C2 {
         axis: Axis,
     },
+    C3 {
+        axis: Axis,
+    },
     Cs {
         plane: Plane,
     },
@@ -77,6 +80,7 @@ impl PointGroup {
         match self {
             PointGroup::C1 => None,
             PointGroup::C2 { axis } => Some(*axis),
+            PointGroup::C3 { axis } => Some(*axis),
             PointGroup::Cs { plane: _ } => None,
             PointGroup::C2v { axis, planes: _ } => Some(*axis),
             PointGroup::C3v { axis, plane: _ } => Some(*axis),
@@ -93,6 +97,7 @@ impl PointGroup {
         match self {
             PointGroup::C1 => None,
             PointGroup::C2 { .. } => None,
+            PointGroup::C3 { .. } => None,
             PointGroup::Cs { .. } => None,
             PointGroup::C2v { .. } => todo!(),
             PointGroup::C3v { .. } => todo!(),
@@ -137,6 +142,7 @@ impl Display for PointGroup {
         match self {
             PointGroup::C1 => write!(f, "C1"),
             PointGroup::C2 { axis: a } => write!(f, "C2({a})"),
+            PointGroup::C3 { axis: a } => write!(f, "C3({a})"),
             PointGroup::Cs { plane: p } => write!(f, "Cs({p})"),
             PointGroup::C2v {
                 axis: a,
